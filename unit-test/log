@@ -11,3 +11,12 @@ a [X][X] coming from France . ||| 来自 法国 的 [X][X] ||| 1
 a astronauts [X][X] . ||| [X][X] 的 宇航 员 ||| 1
 a [X][X] coming from [X][X] . ||| 来自 [X][X] 的 [X][X] ||| 3
 ==================
+stop chicken [X][X] ||| 阻止 小鸡 [X][X] ||| 1
+stop chicken from [X][X] ||| 阻止 小鸡 [X][X] ||| 1
+[X][X] chicken [X][X] ||| [X][X] 小鸡 [X][X] ||| 2
+[X][X] chicken from [X][X] ||| [X][X] 小鸡 [X][X] ||| 2
+[X][X] chicken from running ||| [X][X] 小鸡 逃跑 ||| 1
+from [X][X] ||| [X][X] ||| 1
+stop [X][X] [X][X] ||| 阻止 [X][X] [X][X] ||| 2
+stop [X][X] from running ||| 阻止 [X][X] 逃跑 ||| 1
+==================

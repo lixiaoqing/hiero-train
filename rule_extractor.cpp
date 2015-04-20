@@ -85,6 +85,7 @@ string RuleExtractor::get_words_according_to_spans(pair<int,int> span,pair<int,i
 void RuleExtractor::extract_rules()
 {
 	fill_span2rules_with_AX_XA_XAX_rule();                            //形如AX,XA和XAX的规则
+	fill_span2rules_with_AXX_XXA_rule();                              //形如AXX和XXA的规则
 	fill_span2rules_with_AXB_AXBX_XAXB_rule();                        //形如AXB,AXBX和XAXB的规则
 	fill_span2rules_with_AXBXC_rule();                                //形如AXBXC的规则
 }
@@ -137,6 +138,56 @@ void RuleExtractor::fill_span2rules_with_AX_XA_XAX_rule()
 						pair<int,int> span = make_pair(beg_X1,len_A+len_X1+len_X2+2);
 						pair<int,int> span_X1 = make_pair(beg_X1,len_X1);
 						pair<int,int> span_X2 = make_pair(beg_X2,len_X2);
+						if (check_alignment_and_node_for_src_spans(span,span_X1,span_X2)==false)
+							continue;
+						generate_rule_according_to_src_spans(span,span_X1,span_X2);
+					}
+				}
+			}
+		}
+	}
+}
+
+void RuleExtractor::fill_span2rules_with_AXX_XXA_rule()
+{
+	int src_sen_len = tspair->src_sen_len;
+	for (int beg_A=0;beg_A<src_sen_len;beg_A++)
+	{
+		for (int len_A=0;len_A<src_sen_len-beg_A && len_A<MAX_SPAN_LEN;len_A++)
+		{
+			/*
+			//抽取形如XXA的规则
+			if (beg_A > 1)
+			{
+				for (int len_X1X2=1;len_X1X2<beg_A && len_X1X2<MAX_SPAN_LEN-len_A-1;len_X1X2++)   //TODO 注意边界取值
+				{
+					for (int len_X2=0;len_X2<len_X1X2;len_X2++)   //TODO 注意边界取值
+					{
+						int beg_X1 = beg_A - len_X1X2 - 1;
+						int beg_X2 = beg_A - len_X2 - 1;
+						pair<int,int> span = make_pair(beg_X1,len_X1X2+len_A+1);
+						pair<int,int> span_X1 = make_pair(beg_X1,len_X1X2-len_X2-1);
+						pair<int,int> span_X2 = make_pair(beg_X2,len_X2);
+						//如果XA或X不对应句法节点或不满足对齐一致性
+						if (check_alignment_and_node_for_src_spans(span,span_X1,span_X2)==false)
+							continue;
+						generate_rule_according_to_src_spans(span,span_X1,span_X2);
+					}
+				}
+			}
+			*/
+			//抽取形如AXX的规则
+			if (beg_A+len_A < src_sen_len - 2)
+			{
+				for (int len_X1X2=1;len_X1X2<src_sen_len-beg_A-len_A-1 && len_X1X2<MAX_SPAN_LEN-len_A-1;len_X1X2++)   //TODO 注意边界取值
+				{
+					for (int len_X1=0;len_X1<len_X1X2;len_X1++)   //TODO 注意边界取值
+					{
+						int beg_X1 = beg_A + len_A + 1;
+						int beg_X2 = beg_A + len_A + 1 + len_X1 + 1;
+						pair<int,int> span = make_pair(beg_A,len_A+len_X1X2+1);
+						pair<int,int> span_X1 = make_pair(beg_X1,len_X1);
+						pair<int,int> span_X2 = make_pair(beg_X2,len_X1X2-len_X1-1);
 						if (check_alignment_and_node_for_src_spans(span,span_X1,span_X2)==false)
 							continue;
 						generate_rule_according_to_src_spans(span,span_X1,span_X2);
