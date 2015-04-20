@@ -32,6 +32,7 @@ int main(int argc, char* argv[])
 		RuleExtractor rule_extractor(line_tree,line_str,line_align,&lex_s2t,&lex_t2s,&rule_counter);
 		rule_extractor.extract_rules();
 		cout<<"=================="<<endl;
+		break;
 	}
     rule_counter.dump_rules();
 }

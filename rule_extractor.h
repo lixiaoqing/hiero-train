@@ -22,7 +22,9 @@ class RuleExtractor
 		void fill_span2rules_with_AXBXC_rule();
 		string get_words_according_to_spans(pair<int,int> span,pair<int,int> span_X1,pair<int,int> span_X2,vector<string> &words);
 		void generate_rule_according_to_src_spans(pair<int,int> span,pair<int,int> span_X1,pair<int,int> span_X2);
-		bool check_alignment_and_node_constraints(pair<int,int> span,pair<int,int> span_X1,pair<int,int> span_X2);
+		bool check_alignment_constraint(pair<int,int> span,pair<int,int> span_X1,pair<int,int> span_X2);
+		bool check_node_constraint(pair<int,int> span,pair<int,int> span_X1,pair<int,int> span_X2);
+		bool check_boundary_constraint(pair<int,int> span_X1,pair<int,int> span_X2);
 
 	private:
 		TreeStrPair *tspair;
