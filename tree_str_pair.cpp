@@ -99,6 +99,13 @@ void TreeStrPair::build_tree_from_str(const string &line_tree)
 	}
 }
 
+/**************************************************************************************
+ 1. 函数功能: 加载词对齐
+ 2. 入口参数: 一句话的词对齐结果
+ 3. 出口参数: 无
+ 4. 算法简介: 根据每一对对齐的单词，更新每个源端单词对应的目标端span，以及每个目标端
+ 			  单词对应的源端span
+************************************************************************************* */
 void TreeStrPair::load_alignment(const string &line_align)
 {
 	vector<string> alignments = Split(line_align);
@@ -117,16 +124,16 @@ void TreeStrPair::load_alignment(const string &line_align)
  2. 入口参数: 当前子树的根节点
  3. 出口参数: 无
  4. 算法简介: 1) 后序遍历当前子树
- 			  2) 根据子节点的src_span和tgt_span计算当前节点的src_span和tgt_span
-			  3) 检查tgt_span中的每个词是否都对齐到src_span中，从而确定当前节点是否为
-			     边界节点
+ 			  2) 根据子节点的src_span计算当前节点的src_span，并根据预先计算好的源端
+			  	 span到目标端span的映射表得到当前节点的tgt_span
+			  3) 根据预先计算好的词对齐一致性检查表源端span到句法节点的检查表判断当前
+			  	 节点是否为边界节点
 ************************************************************************************* */
 void TreeStrPair::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
 {
 	if (node->children.empty() )                                                                               //单词节点
 	{
 		node->tgt_span = src_span_to_tgt_span[node->src_span.first][node->src_span.second];
-		src_span_to_node_flag[node->src_span.first][node->src_span.second] = true;							   //顺便更新每个span是否有句法节点
 		node->type = 0;
 		return;
 	}
@@ -147,6 +154,13 @@ void TreeStrPair::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
 	}
 }
 
+/**************************************************************************************
+ 1. 函数功能: 计算每个源端span投射到目标端的span，以及每个目标端span投射到源端的span
+ 2. 入口参数: 无
+ 3. 出口参数: 无
+ 4. 算法简介: 采用动态规划算法自底向上，自左向右地计算每个span的proj_span，计算公式为
+ 			  proj_span[beg][len] = proj_span[beg][len-1] + proj_span[beg+len][0]
+************************************************************************************* */
 void TreeStrPair::cal_proj_span()
 {
 	for (int span_len=1;span_len<src_sen_len;span_len++)
@@ -165,6 +179,12 @@ void TreeStrPair::cal_proj_span()
 	}
 }
 
+/**************************************************************************************
+ 1. 函数功能: 将两个span合并为一个span
+ 2. 入口参数: 被合并的两个span
+ 3. 出口参数: 合并后的span
+ 4. 算法简介: 见注释
+************************************************************************************* */
 pair<int,int> TreeStrPair::merge_span(pair<int,int> span1,pair<int,int> span2)
 {
 	if (span2.first == -1)
@@ -172,11 +192,18 @@ pair<int,int> TreeStrPair::merge_span(pair<int,int> span1,pair<int,int> span2)
 	if (span1.first == -1)
 		return span2;
 	pair<int,int> span;
-	span.first = min(span1.first,span2.first);
-	span.second = max(span1.first+span1.second,span2.first+span2.second) - span.first;
+	span.first = min(span1.first,span2.first);												// 合并后span的左边界
+	span.second = max(span1.first+span1.second,span2.first+span2.second) - span.first;		// 合并后span的长度，即右边界减去左边界
 	return span;
 }
 
+/**************************************************************************************
+ 1. 函数功能: 检查每个源端span是否满足词对齐一致性
+ 2. 入口参数: 无
+ 3. 出口参数: 无
+ 4. 算法简介: 根据预先计算好的源端span和目标端span的映射表，检查源端span映射到目标端
+ 			  再映射回来的span是否越过了原来源端span的边界
+************************************************************************************* */
 void TreeStrPair::check_alignment_agreement()
 {
 	for (int beg=0;beg<src_sen_len;beg++)
