@@ -145,7 +145,7 @@ void RuleExtractor::extract_rules()
 	fill_span2rules_with_AXBXC_rule();                                //形如AXBXC的规则
 }
 
-void RuleExtractor::dump_rules()
+void RuleExtractor::dump_rules(ofstream &fc2e,ofstream &fe2c)
 {
 	auto &span2rules = tspair->src_span_to_rules;
 	for (int beg=0;beg<span2rules.size();beg++)
@@ -168,7 +168,9 @@ void RuleExtractor::dump_rules()
 	}
 	for (auto &kvp : rule_table)
 	{
-		cout<<kvp.first<<" ||| "<<kvp.second<<endl;
+		fe2c<<kvp.first<<" ||| "<<kvp.second<<endl;
+		vector<string> vs = Split(kvp.first," ||| ");
+		fc2e<<vs[1]<<" ||| "<<vs[0]<<" ||| "<<kvp.second<<endl;
 	}
 }
 

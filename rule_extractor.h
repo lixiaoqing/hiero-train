@@ -13,7 +13,7 @@ class RuleExtractor
 			delete tspair;
 		}
 		void extract_rules();
-		void dump_rules();
+		void dump_rules(ofstream &fc2e,ofstream &fe2c);
 
 	private:
 		void fill_span2rules_with_AX_XA_XAX_rule();
