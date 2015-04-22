@@ -1,10 +1,7 @@
 #include "tree_str_pair.h"
 
-TreeStrPair::TreeStrPair(string &line_tree,string &line_str,string &line_align,map<string,double> *plex_s2t,map<string,double> *plex_t2s,RuleCounter *counter)
+TreeStrPair::TreeStrPair(string &line_tree,string &line_str,string &line_align)
 {
-    lex_s2t = plex_s2t;
-    lex_t2s = plex_t2s;
-    rule_counter = counter;
 	tgt_words = Split(line_str);
 	tgt_sen_len = tgt_words.size();
 	if (line_tree.size() > 3)

@@ -1,8 +1,8 @@
 #include "rule_extractor.h"
 
-RuleExtractor::RuleExtractor(string &line_tree,string &line_str,string &line_align,map<string,double> *lex_s2t,map<string,double> *lex_t2s,RuleCounter *counter)
+RuleExtractor::RuleExtractor(string &line_tree,string &line_str,string &line_align)
 {
-	tspair = new TreeStrPair(line_tree,line_str,line_align,lex_s2t,lex_t2s,counter);
+	tspair = new TreeStrPair(line_tree,line_str,line_align);
 }
 
 /**************************************************************************************
@@ -86,17 +86,12 @@ void RuleExtractor::generate_rule_according_to_src_spans(pair<int,int> span,pair
 		tgt_span_X2 = tspair->src_span_to_tgt_span[span_X2.first][span_X2.second];
 	}
 	string rule_tgt = get_words_according_to_spans(tgt_span,tgt_span_X1,tgt_span_X2,tspair->tgt_words); // 生成规则目标端的字符串表示
-	int type;
-	if (span_X2.first == -1)
+	string type = "mono";
+	if (tgt_span_X2.first != -1 && tgt_span_X2.first<tgt_span_X1.first)
 	{
-		type = 1;
+		type = "swap";
 	}
-	else
-	{
-		type = tgt_span_X1.first<tgt_span_X2.first?2:3;													// 判断规则类型
-	}
-	Rule rule = {rule_src,rule_tgt,type};
-	cout<<rule.rule_src<<" ||| "<<rule.rule_tgt<<" ||| "<<rule.type<<endl;			//4debug
+	string rule = rule_src+" [X] ||| "+rule_tgt+" [X] ||| "+type;
 	tspair->src_span_to_rules[span.first][span.second].push_back(rule);
 }
 
@@ -144,6 +139,33 @@ void RuleExtractor::extract_rules()
 	fill_span2rules_with_AXX_XXA_rule();                              //形如AXX和XXA的规则
 	fill_span2rules_with_AXB_AXBX_XAXB_rule();                        //形如AXB,AXBX和XAXB的规则
 	fill_span2rules_with_AXBXC_rule();                                //形如AXBXC的规则
+}
+
+void RuleExtractor::dump_rules()
+{
+	auto &span2rules = tspair->src_span_to_rules;
+	for (int beg=0;beg<span2rules.size();beg++)
+	{
+		for (int span_len=0;span_len<span2rules.at(beg).size();span_len++)
+		{
+			for (string &rule : span2rules.at(beg).at(span_len))
+			{
+				auto it = rule_table.find(rule);
+				if (it != rule_table.end())
+				{
+					it->second++;
+				}
+				else
+				{
+					rule_table[rule] = 1;
+				}
+			}
+		}
+	}
+	for (auto &kvp : rule_table)
+	{
+		cout<<kvp.first<<" ||| "<<kvp.second<<endl;
+	}
 }
 
 /**************************************************************************************

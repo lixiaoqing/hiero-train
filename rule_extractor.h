@@ -3,17 +3,17 @@
 #include "stdafx.h"
 #include "myutils.h"
 #include "tree_str_pair.h"
-#include "rule_counter.h"
 
 class RuleExtractor
 {
 	public:
-		RuleExtractor(string &line_tree,string &line_str,string &line_align,map<string,double> *lex_s2t,map<string,double> *lex_t2s,RuleCounter *counter);
+		RuleExtractor(string &line_tree,string &line_str,string &line_align);
 		~RuleExtractor()
 		{
 			delete tspair;
 		}
 		void extract_rules();
+		void dump_rules();
 
 	private:
 		void fill_span2rules_with_AX_XA_XAX_rule();
@@ -28,6 +28,7 @@ class RuleExtractor
 
 	private:
 		TreeStrPair *tspair;
+		map<string,int> rule_table;
 };
 
 #endif

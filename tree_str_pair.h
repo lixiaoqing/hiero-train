@@ -2,14 +2,6 @@
 #define TREE_STR_PAIR_H
 #include "stdafx.h"
 #include "myutils.h"
-#include "rule_counter.h"
-
-struct Rule
-{
-	string rule_src;						//规则源端部分
-	string rule_tgt;						//规则目标端部分
-	int type;								//规则类型，0和1表示包含0个或1个非终结符，2和3表示包含两个非终结符的正序或逆序规则
-};
 
 // 源端句法树节点
 struct SyntaxNode
@@ -40,7 +32,7 @@ struct SyntaxNode
 class TreeStrPair
 {
 	public:
-		TreeStrPair(string &line_tree,string &line_str,string &line_align,map<string,double> *plex_s2t,map<string,double> *plex_t2s,RuleCounter *counter);
+		TreeStrPair(string &line_tree,string &line_str,string &line_align);
 		~TreeStrPair()
 		{
 			delete root;
@@ -55,19 +47,16 @@ class TreeStrPair
 		void check_frontier_for_nodes_in_subtree(SyntaxNode* node);
 
 	public:
-        RuleCounter *rule_counter;
 		SyntaxNode* root;
 		vector<vector<pair<int,int> > > src_span_to_tgt_span;			//记录每个源端span投射到目标端的span，span用起始位置和跨度长度来表示
 		vector<vector<pair<int,int> > > tgt_span_to_src_span;			//记录每个目标端端span投射到源的span
 		vector<vector<bool> > src_span_to_node_flag;					//记录每个源端span是否有对应的句法节点
 		vector<vector<bool> > src_span_to_alignment_agreement_flag;		//记录每个源端span是否满足对齐一致性
-		vector<vector<vector<Rule> > > src_span_to_rules;				//记录每个源端span能抽取的所有规则
+		vector<vector<vector<string> > > src_span_to_rules;				//记录每个源端span能抽取的所有规则
 		vector<string> src_words;
 		vector<string> tgt_words;
 		int src_sen_len;
 		int tgt_sen_len;
-        map<string,double> *lex_s2t;
-        map<string,double> *lex_t2s;
 };
 
 #endif
