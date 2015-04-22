@@ -78,6 +78,8 @@ void RuleExtractor::generate_rule_according_to_src_spans(pair<int,int> span,pair
 {
 	//cout<<"valid src span: "<<span.first<<' '<<span.second<<' '<<span_X1.first<<' '<<span_X1.second<<' '<<span_X2.first<<' '<<span_X2.second<<endl;
 	string rule_src = get_words_according_to_spans(span,span_X1,span_X2,tspair->src_words);				// 生成规则源端的字符串表示
+	if (get_word_num(rule_src) > MAX_RULE_SRC_LEN)
+		return;
 	pair<int,int> tgt_span = tspair->src_span_to_tgt_span[span.first][span.second];						// 获取规则目标端以及其中变量的跨度
 	pair<int,int> tgt_span_X1 = tspair->src_span_to_tgt_span[span_X1.first][span_X1.second];
 	pair<int,int> tgt_span_X2 = make_pair(-1,-1);
@@ -86,6 +88,8 @@ void RuleExtractor::generate_rule_according_to_src_spans(pair<int,int> span,pair
 		tgt_span_X2 = tspair->src_span_to_tgt_span[span_X2.first][span_X2.second];
 	}
 	string rule_tgt = get_words_according_to_spans(tgt_span,tgt_span_X1,tgt_span_X2,tspair->tgt_words); // 生成规则目标端的字符串表示
+	if (get_word_num(rule_tgt) > MAX_RULE_TGT_LEN)
+		return;
 	string type = "mono";
 	if (tgt_span_X2.first != -1 && tgt_span_X2.first<tgt_span_X1.first)
 	{

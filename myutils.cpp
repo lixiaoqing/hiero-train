@@ -49,3 +49,16 @@ void print_vector(vector<int> &v)
 		cout<<e<<" ";
 	cout<<endl;
 }
+
+int get_word_num(string s)
+{
+	int n = 1;
+	for (char c : s)
+	{
+		if (c == ' ')
+		{
+			n++;
+		}
+	}
+	return n;
+}

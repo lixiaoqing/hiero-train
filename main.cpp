@@ -8,6 +8,7 @@ int main(int argc, char* argv[])
 	ifstream fs(argv[2]);
 	ifstream fa(argv[3]);
 	string line_tree,line_str,line_align;
+	int num = 0;
 	while(getline(ft,line_tree))
 	{
 		getline(fs,line_str);
@@ -15,5 +16,8 @@ int main(int argc, char* argv[])
 		RuleExtractor rule_extractor(line_tree,line_str,line_align);
 		rule_extractor.extract_rules();
 		rule_extractor.dump_rules();
+		num++;
+		if (num%1000 == 0)
+			cerr<<num<<endl;
 	}
 }

@@ -30,5 +30,7 @@
 using namespace std;
 
 const int MAX_SPAN_LEN = 20;			// 规则源端能占据的最大跨度
+const int MAX_RULE_SRC_LEN = 5;			// 规则源端最大的符号数
+const int MAX_RULE_TGT_LEN = 10;		// 规则目标端最大的符号数
 
 #endif
