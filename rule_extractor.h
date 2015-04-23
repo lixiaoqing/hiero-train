@@ -7,13 +7,13 @@
 class RuleExtractor
 {
 	public:
-		RuleExtractor(string &line_tree,string &line_str,string &line_align);
+		RuleExtractor(string &line_str,string &line_tree,string &line_align);
 		~RuleExtractor()
 		{
 			delete tspair;
 		}
 		void extract_rules();
-		void dump_rules(ofstream &fc2e,ofstream &fe2c);
+		void dump_rules(ofstream &fs2t,ofstream &ft2s);
 
 	private:
 		void fill_span2rules_with_AX_XA_XAX_rule();

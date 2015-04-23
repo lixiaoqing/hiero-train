@@ -1,8 +1,8 @@
 #include "rule_extractor.h"
 
-RuleExtractor::RuleExtractor(string &line_tree,string &line_str,string &line_align)
+RuleExtractor::RuleExtractor(string &line_str,string &line_tree,string &line_align)
 {
-	tspair = new TreeStrPair(line_tree,line_str,line_align);
+	tspair = new TreeStrPair(line_str,line_tree,line_align);
 }
 
 /**************************************************************************************
@@ -34,15 +34,15 @@ bool RuleExtractor::check_alignment_constraint(pair<int,int> span,pair<int,int> 
 ************************************************************************************* */
 bool RuleExtractor::check_node_constraint(pair<int,int> span,pair<int,int> span_X1,pair<int,int> span_X2)
 {
-	if (tspair->src_span_to_node_flag[span.first][span.second] == false)
+	if (tspair->tgt_span_to_node_flag[span.first][span.second] == false)
 		return false;
 	if (span_X1.first == -1)
 		return true;
-	if (tspair->src_span_to_node_flag[span_X1.first][span_X1.second] == false)
+	if (tspair->tgt_span_to_node_flag[span_X1.first][span_X1.second] == false)
 		return false;
 	if (span_X2.first == -1)
 		return true;
-	if (tspair->src_span_to_node_flag[span_X2.first][span_X2.second] == false)
+	if (tspair->tgt_span_to_node_flag[span_X2.first][span_X2.second] == false)
 		return false;
 	return true;
 }
@@ -76,9 +76,8 @@ bool RuleExtractor::check_boundary_constraint(pair<int,int> span_X1,pair<int,int
 ************************************************************************************* */
 void RuleExtractor::generate_rule_according_to_src_spans(pair<int,int> span,pair<int,int> span_X1,pair<int,int> span_X2)
 {
-	//cout<<"valid src span: "<<span.first<<' '<<span.second<<' '<<span_X1.first<<' '<<span_X1.second<<' '<<span_X2.first<<' '<<span_X2.second<<endl;
-	string rule_src = get_words_according_to_spans(span,span_X1,span_X2,tspair->src_words);				// 生成规则源端的字符串表示
-	if (get_word_num(rule_src) > MAX_RULE_SRC_LEN)
+	//如果整个span或变量span不满足对齐一致性
+	if (check_alignment_constraint(span,span_X1,span_X2)==false)
 		return;
 	pair<int,int> tgt_span = tspair->src_span_to_tgt_span[span.first][span.second];						// 获取规则目标端以及其中变量的跨度
 	pair<int,int> tgt_span_X1 = tspair->src_span_to_tgt_span[span_X1.first][span_X1.second];
@@ -87,6 +86,15 @@ void RuleExtractor::generate_rule_according_to_src_spans(pair<int,int> span,pair
 	{
 		tgt_span_X2 = tspair->src_span_to_tgt_span[span_X2.first][span_X2.second];
 	}
+	//如果整个span或变量span不对应句法节点
+	if (check_node_constraint(tgt_span,tgt_span_X1,tgt_span_X2)==false)
+		return;
+	//if (check_boundary_constraint(span_X1,span_X2)==false)  //TODO 不一定需要
+		//return;
+	//cout<<"valid src span: "<<span.first<<' '<<span.second<<' '<<span_X1.first<<' '<<span_X1.second<<' '<<span_X2.first<<' '<<span_X2.second<<endl;
+	string rule_src = get_words_according_to_spans(span,span_X1,span_X2,tspair->src_words);				// 生成规则源端的字符串表示
+	if (get_word_num(rule_src) > MAX_RULE_SRC_LEN)
+		return;
 	string rule_tgt = get_words_according_to_spans(tgt_span,tgt_span_X1,tgt_span_X2,tspair->tgt_words); // 生成规则目标端的字符串表示
 	if (get_word_num(rule_tgt) > MAX_RULE_TGT_LEN)
 		return;
@@ -239,7 +247,7 @@ void RuleExtractor::extract_rules()
 	fill_span2rules_with_AXBXC_rule();                                //形如AXBXC的规则
 }
 
-void RuleExtractor::dump_rules(ofstream &fc2e,ofstream &fe2c)
+void RuleExtractor::dump_rules(ofstream &fs2t,ofstream &ft2s)
 {
 	auto &span2rules = tspair->src_span_to_rules;
 	for (int beg=0;beg<span2rules.size();beg++)
@@ -262,15 +270,15 @@ void RuleExtractor::dump_rules(ofstream &fc2e,ofstream &fe2c)
 	}
 	for (auto &kvp : rule_table)
 	{
-		fe2c<<kvp.first<<" ||| "<<kvp.second<<endl;
+		fs2t<<kvp.first<<" ||| "<<kvp.second<<endl;
 		vector<string> vs = Split(kvp.first," ||| ");
-		fc2e<<vs[1]<<" ||| "<<vs[0]<<" ||| ";
+		ft2s<<vs[1]<<" ||| "<<vs[0]<<" ||| ";
 		for (auto &idx_e2c_pair : Split(vs[2]))
 		{
 			int sep = idx_e2c_pair.find('-');
-			fc2e<<idx_e2c_pair.substr(sep+1)<<'-'<<idx_e2c_pair.substr(0,sep)<<' ';
+			ft2s<<idx_e2c_pair.substr(sep+1)<<'-'<<idx_e2c_pair.substr(0,sep)<<' ';
 		}
-		fc2e<<"||| "<<kvp.second<<endl;
+		ft2s<<"||| "<<kvp.second<<endl;
 	}
 }
 
@@ -300,13 +308,6 @@ void RuleExtractor::fill_span2rules_with_AX_XA_XAX_rule()
 					pair<int,int> span_X1 = make_pair(beg_X,len_X);
 					pair<int,int> span_X2 = make_pair(-1,-1);
 					//cout<<get_words_according_to_spans(span,span_X1,span_X2,tspair->src_words)<<endl;
-					//如果XA或X不对应句法节点或不满足对齐一致性
-					if (check_alignment_constraint(span,span_X1,span_X2)==false)
-						continue;
-					if (check_node_constraint(span,span_X1,span_X2)==false)
-						continue;
-					if (check_boundary_constraint(span_X1,span_X2)==false)
-						continue;
 					generate_rule_according_to_src_spans(span,span_X1,span_X2);
 				}
 			}
@@ -320,12 +321,6 @@ void RuleExtractor::fill_span2rules_with_AX_XA_XAX_rule()
 					pair<int,int> span_X1 = make_pair(beg_X,len_X);
 					pair<int,int> span_X2 = make_pair(-1,-1);
 					//cout<<get_words_according_to_spans(span,span_X1,span_X2,tspair->src_words)<<endl;
-					if (check_alignment_constraint(span,span_X1,span_X2)==false)
-						continue;
-					if (check_node_constraint(span,span_X1,span_X2)==false)
-						continue;
-					if (check_boundary_constraint(span_X1,span_X2)==false)
-						continue;
 					generate_rule_according_to_src_spans(span,span_X1,span_X2);
 				}
 			}
@@ -342,12 +337,6 @@ void RuleExtractor::fill_span2rules_with_AX_XA_XAX_rule()
 						pair<int,int> span_X1 = make_pair(beg_X1,len_X1);
 						pair<int,int> span_X2 = make_pair(beg_X2,len_X2);
 					//cout<<get_words_according_to_spans(span,span_X1,span_X2,tspair->src_words)<<endl;
-						if (check_alignment_constraint(span,span_X1,span_X2)==false)
-							continue;
-						if (check_node_constraint(span,span_X1,span_X2)==false)
-							continue;
-						if (check_boundary_constraint(span_X1,span_X2)==false)
-							continue;
 						generate_rule_according_to_src_spans(span,span_X1,span_X2);
 					}
 				}
@@ -385,12 +374,6 @@ void RuleExtractor::fill_span2rules_with_AXX_XXA_rule()
 						pair<int,int> span_X1 = make_pair(beg_X1,len_X1X2-len_X2-1);
 						pair<int,int> span_X2 = make_pair(beg_X2,len_X2);
 						//如果XA或X不对应句法节点或不满足对齐一致性
-						if (check_alignment_constraint(span,span_X1,span_X2)==false)
-							continue;
-						if (check_node_constraint(span,span_X1,span_X2)==false)
-							continue;
-						if (check_boundary_constraint(span_X1,span_X2)==false)
-							continue;
 						generate_rule_according_to_src_spans(span,span_X1,span_X2);
 					}
 				}
@@ -409,12 +392,6 @@ void RuleExtractor::fill_span2rules_with_AXX_XXA_rule()
 						pair<int,int> span_X1 = make_pair(beg_X1,len_X1);
 						pair<int,int> span_X2 = make_pair(beg_X2,len_X1X2-len_X1-1);
 					//cout<<get_words_according_to_spans(span,span_X1,span_X2,tspair->src_words)<<endl;
-						if (check_alignment_constraint(span,span_X1,span_X2)==false)
-							continue;
-						if (check_node_constraint(span,span_X1,span_X2)==false)
-							continue;
-						if (check_boundary_constraint(span_X1,span_X2)==false)
-							continue;
 						generate_rule_according_to_src_spans(span,span_X1,span_X2);
 					}
 				}
@@ -452,12 +429,6 @@ void RuleExtractor::fill_span2rules_with_AXB_AXBX_XAXB_rule()
 							pair<int,int> span_X1 = make_pair(beg_X1,len_X1);
 							pair<int,int> span_X2 = make_pair(beg_X,len_X);
 					//cout<<get_words_according_to_spans(span,span_X1,span_X2,tspair->src_words)<<endl;
-							if (check_alignment_constraint(span,span_X1,span_X2)==false)
-								continue;
-							if (check_node_constraint(span,span_X1,span_X2)==false)
-								continue;
-							if (check_boundary_constraint(span_X1,span_X2)==false)
-								continue;
 							generate_rule_according_to_src_spans(span,span_X1,span_X2);
 						}
 					}
@@ -471,12 +442,6 @@ void RuleExtractor::fill_span2rules_with_AXB_AXBX_XAXB_rule()
 							pair<int,int> span_X1 = make_pair(beg_X,len_X);
 							pair<int,int> span_X2 = make_pair(beg_X2,len_X2);
 					//cout<<get_words_according_to_spans(span,span_X1,span_X2,tspair->src_words)<<endl;
-							if (check_alignment_constraint(span,span_X1,span_X2)==false)
-								continue;
-							if (check_node_constraint(span,span_X1,span_X2)==false)
-								continue;
-							if (check_boundary_constraint(span_X1,span_X2)==false)
-								continue;
 							generate_rule_according_to_src_spans(span,span_X1,span_X2);
 						}
 					}
@@ -485,12 +450,6 @@ void RuleExtractor::fill_span2rules_with_AXB_AXBX_XAXB_rule()
 					pair<int,int> span_X1 = make_pair(beg_X,len_X);
 					pair<int,int> span_X2 = make_pair(-1,-1);
 					//cout<<get_words_according_to_spans(span,span_X1,span_X2,tspair->src_words)<<endl;
-					if (check_alignment_constraint(span,span_X1,span_X2)==false)
-						continue;
-					if (check_node_constraint(span,span_X1,span_X2)==false)
-						continue;
-					if (check_boundary_constraint(span_X1,span_X2)==false)
-						continue;
 					generate_rule_according_to_src_spans(span,span_X1,span_X2);
 				}
 			}
@@ -525,12 +484,6 @@ void RuleExtractor::fill_span2rules_with_AXBXC_rule()
 							pair<int,int> span_X1 = make_pair(beg_XBX,beg_B-beg_XBX-1);
 							pair<int,int> span_X2 = make_pair(beg_B+len_B+1,len_XBX-len_B-(beg_B-beg_XBX-1)-2);
 					//cout<<get_words_according_to_spans(span,span_X1,span_X2,tspair->src_words)<<endl;
-							if (check_alignment_constraint(span,span_X1,span_X2)==false)
-								continue;
-							if (check_node_constraint(span,span_X1,span_X2)==false)
-								continue;
-							if (check_boundary_constraint(span_X1,span_X2)==false)
-								continue;
 							generate_rule_according_to_src_spans(span,span_X1,span_X2);
 						}
 					}

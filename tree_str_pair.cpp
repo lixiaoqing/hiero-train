@@ -1,30 +1,32 @@
 #include "tree_str_pair.h"
 
-TreeStrPair::TreeStrPair(string &line_tree,string &line_str,string &line_align)
+TreeStrPair::TreeStrPair(string &line_str,string &line_tree,string &line_align)
 {
-	tgt_words = Split(line_str);
-	tgt_sen_len = tgt_words.size();
+	src_words = Split(line_str);
+	src_sen_len = src_words.size();
+	src_span_to_tgt_span.resize(src_sen_len);
+	src_idx_to_tgt_idx.resize(src_sen_len);
+	src_span_to_alignment_agreement_flag.resize(src_sen_len);
+	src_span_to_rules.resize(src_sen_len);
+	for (int beg=0;beg<src_sen_len;beg++)
+	{
+		src_span_to_tgt_span.at(beg).resize(src_sen_len-beg,make_pair(-1,-1));
+		src_span_to_alignment_agreement_flag.at(beg).resize(src_sen_len-beg,false);
+		src_span_to_rules.at(beg).resize(src_sen_len-beg);
+	}
 	if (line_tree.size() > 3)
 	{
 		build_tree_from_str(line_tree);
-		src_sen_len = src_words.size();
-		src_span_to_tgt_span.resize(src_sen_len);
-		src_idx_to_tgt_idx.resize(src_sen_len);
-		src_span_to_alignment_agreement_flag.resize(src_sen_len);
-		src_span_to_node_flag.resize(src_sen_len);
-		src_span_to_rules.resize(src_sen_len);
-		for (int beg=0;beg<src_sen_len;beg++)
-		{
-			src_span_to_tgt_span.at(beg).resize(src_sen_len-beg,make_pair(-1,-1));
-			src_span_to_alignment_agreement_flag.at(beg).resize(src_sen_len-beg,false);
-			src_span_to_node_flag.at(beg).resize(src_sen_len-beg,false);
-			src_span_to_rules.at(beg).resize(src_sen_len-beg);
-		}
+		tgt_sen_len = tgt_words.size();
+		tgt_span_to_node_flag.resize(tgt_sen_len);
+		tgt_span_to_alignment_agreement_flag.resize(tgt_sen_len);
 		tgt_span_to_src_span.resize(tgt_sen_len);
 		tgt_idx_to_src_idx.resize(tgt_sen_len);
 		for (int beg=0;beg<tgt_sen_len;beg++)
 		{
 			tgt_span_to_src_span.at(beg).resize(tgt_sen_len-beg,make_pair(-1,-1));
+			tgt_span_to_node_flag.at(beg).resize(tgt_sen_len-beg,false);
+			tgt_span_to_alignment_agreement_flag.at(beg).resize(tgt_sen_len-beg,false);
 		}
 		load_alignment(line_align);
 		cal_proj_span();
@@ -90,8 +92,8 @@ void TreeStrPair::build_tree_from_str(const string &line_tree)
 			//如果是“需要”的情形，则记录中文词的序号
 			if(toks[i+1]==")")
 			{
-				cur_node->src_span = make_pair(word_index,0);
-				src_words.push_back(toks[i]);
+				cur_node->tgt_span = make_pair(word_index,0);
+				tgt_words.push_back(toks[i]);
 				word_index++;
 			}
 		}
@@ -134,7 +136,7 @@ void TreeStrPair::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
 {
 	if (node->children.empty() )                                                                               //单词节点
 	{
-		node->tgt_span = src_span_to_tgt_span[node->src_span.first][node->src_span.second];
+		node->src_span = tgt_span_to_src_span[node->tgt_span.first][node->tgt_span.second];
 		node->type = 0;
 		return;
 	}
@@ -142,14 +144,13 @@ void TreeStrPair::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
 	{
 		check_frontier_for_nodes_in_subtree(child);
 	}
-	node->src_span = make_pair(node->children.front()->src_span.first,node->children.back()->src_span.first+
-					 node->children.back()->src_span.second - node->children.front()->src_span.first);			//更新src_span
-	node->tgt_span = src_span_to_tgt_span[node->src_span.first][node->src_span.second];							//更新tgt_span
-	//cout<<node->label<<" src span: "<<node->src_span.first<<' '<<node->src_span.second<<" tgt span: "<<node->tgt_span.first<<' '<<node->tgt_span.second<<endl;  //4debug
+	node->tgt_span = make_pair(node->children.front()->tgt_span.first,node->children.back()->tgt_span.first+
+					 node->children.back()->tgt_span.second - node->children.front()->tgt_span.first);			//更新tgt_span
+	node->src_span = tgt_span_to_src_span[node->tgt_span.first][node->tgt_span.second];							//更新src_span
 
-	src_span_to_node_flag[node->src_span.first][node->src_span.second] = true;								    //顺便更新每个span是否有句法节点
+	tgt_span_to_node_flag[node->tgt_span.first][node->tgt_span.second] = true;								    //顺便更新每个span是否有句法节点
 	node->type = 2;
-	if (src_span_to_alignment_agreement_flag[node->src_span.first][node->src_span.second] == true)
+	if (tgt_span_to_alignment_agreement_flag[node->tgt_span.first][node->tgt_span.second] == true)
 	{
 		node->type = 1;
 	}
@@ -215,7 +216,6 @@ void TreeStrPair::check_alignment_agreement()
 			if (tgt_span.first == -1)
 			{
 				src_span_to_alignment_agreement_flag[beg][span_len] = false;	  //如果目标端span为空，认为不满足对齐一致性
-				//cout<<"src span: "<<beg<<' '<<span_len<<" tgt span: "<<tgt_span.first<<' '<<tgt_span.second<<" src span to null"<<endl;
 			}
 			else
 			{
@@ -224,7 +224,27 @@ void TreeStrPair::check_alignment_agreement()
 				if (proj_src_span.first >= beg && proj_src_span.first+proj_src_span.second <= beg+span_len)
 				{
 					src_span_to_alignment_agreement_flag[beg][span_len] = true;
-					//cout<<"src span: "<<beg<<' '<<span_len<<" tgt span: "<<tgt_span.first<<' '<<tgt_span.second<<" proj src span: "<<proj_src_span.first<<' '<<proj_src_span.second<<endl;
+				}
+			}
+		}
+	}
+
+	for (int beg=0;beg<tgt_sen_len;beg++)
+	{
+		for (int span_len=0;span_len<tgt_sen_len-beg;span_len++)
+		{
+			pair<int,int> src_span = tgt_span_to_src_span[beg][span_len];
+			if (src_span.first == -1)
+			{
+				tgt_span_to_alignment_agreement_flag[beg][span_len] = false;	  //如果源端span为空，认为不满足对齐一致性
+			}
+			else
+			{
+				pair<int,int> proj_tgt_span = src_span_to_tgt_span[src_span.first][src_span.second];
+				//如果目标端span投射回来的源端span不超原来的源端span，则满足对齐一致性
+				if (proj_tgt_span.first >= beg && proj_tgt_span.first+proj_tgt_span.second <= beg+span_len)
+				{
+					tgt_span_to_alignment_agreement_flag[beg][span_len] = true;
 				}
 			}
 		}
