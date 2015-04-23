@@ -1,29 +1,9 @@
-[X][X] [X] ||| [X][X] 了 [X] ||| 0-0 ||| 1
-[X][X] chicken from [X][X] . [X] ||| [X][X] 小鸡 [X][X] . [X] ||| 1-1 4-3 0-0 3-2 ||| 1
-[X][X] chicken from [X][X] . [X] ||| [X][X] 小鸡 [X][X] 了 . [X] ||| 1-1 4-4 0-0 3-2 ||| 1
-[X][X] chicken from running [X][X] [X] ||| [X][X] 小鸡 逃跑 [X][X] [X] ||| 1-1 3-2 0-0 4-3 ||| 1
-[X][X] chicken from running . [X] ||| [X][X] 小鸡 逃跑 了 . [X] ||| 1-1 3-2 4-4 0-0 ||| 1
-[X][X] chicken from running [X][X] [X] ||| [X][X] 小鸡 逃跑 了 [X][X] [X] ||| 1-1 3-2 0-0 4-4 ||| 1
-[X][X] [X] ||| 了 [X][X] [X] ||| 0-1 ||| 1
-stop [X][X] from running [X][X] [X] ||| 阻止 [X][X] 逃跑 [X][X] [X] ||| 0-0 3-2 1-1 4-3 ||| 1
-stop [X][X] from running . [X] ||| 阻止 [X][X] 逃跑 了 . [X] ||| 0-0 3-2 4-4 1-1 ||| 1
-stop [X][X] from running [X][X] [X] ||| 阻止 [X][X] 逃跑 了 [X][X] [X] ||| 0-0 3-2 1-1 4-4 ||| 1
-stop chicken from [X][X] . [X] ||| 阻止 小鸡 [X][X] . [X] ||| 0-0 1-1 4-3 3-2 ||| 1
-stop chicken from [X][X] [X][X] [X] ||| 阻止 小鸡 [X][X] [X][X] [X] ||| 0-0 1-1 3-2 4-3 ||| 2
-stop chicken from [X][X] . [X] ||| 阻止 小鸡 [X][X] 了 . [X] ||| 0-0 1-1 4-4 3-2 ||| 1
-stop chicken from [X][X] [X][X] [X] ||| 阻止 小鸡 [X][X] 了 [X][X] [X] ||| 0-0 1-1 3-2 4-4 ||| 1
-stop chicken from running [X][X] [X] ||| 阻止 小鸡 逃跑 [X][X] [X] ||| 0-0 1-1 3-2 4-3 ||| 1
-stop chicken from running [X][X] [X] ||| 阻止 小鸡 逃跑 了 [X][X] [X] ||| 0-0 1-1 3-2 4-4 ||| 1
 astronauts [X][X] [X] ||| [X][X] 宇航 员 [X] ||| 0-1 0-2 1-0 ||| 1
-[X][X] [X] ||| [X][X] 的 [X] ||| 0-0 ||| 2
+[X][X] [X] ||| [X][X] 的 [X] ||| 0-0 ||| 1
 [X][X] [X][X] [X] ||| [X][X] 的 [X][X] [X] ||| 1-0 0-2 ||| 1
 astronauts [X][X] [X] ||| [X][X] 的 宇航 员 [X] ||| 0-2 0-3 1-0 ||| 1
-coming from [X][X] [X] ||| 来自 [X][X] [X] ||| 0-0 1-0 2-1 ||| 2
-[X][X] coming from [X][X] [X] ||| 来自 [X][X] [X][X] [X] ||| 1-0 2-0 3-1 0-2 ||| 2
-astronauts coming from [X][X] [X] ||| 来自 [X][X] 宇航 员 [X] ||| 1-0 2-0 0-2 0-3 3-1 ||| 1
+coming from [X][X] [X] ||| 来自 [X][X] [X] ||| 0-0 1-0 2-1 ||| 1
 coming from [X][X] [X] ||| 来自 [X][X] 的 [X] ||| 0-0 1-0 2-1 ||| 1
 [X][X] coming from [X][X] [X] ||| 来自 [X][X] 的 [X][X] [X] ||| 1-0 2-0 3-1 0-3 ||| 1
 astronauts coming from [X][X] [X] ||| 来自 [X][X] 的 宇航 员 [X] ||| 1-0 2-0 0-3 0-4 3-1 ||| 1
-[X][X] coming from France [X] ||| 来自 法国 [X][X] [X] ||| 1-0 2-0 3-1 0-2 ||| 1
 [X][X] coming from France [X] ||| 来自 法国 的 [X][X] [X] ||| 1-0 2-0 3-1 0-3 ||| 1
-[X][X] [X] ||| 的 [X][X] [X] ||| 0-1 ||| 1
