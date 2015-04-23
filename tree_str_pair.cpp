@@ -9,6 +9,7 @@ TreeStrPair::TreeStrPair(string &line_tree,string &line_str,string &line_align)
 		build_tree_from_str(line_tree);
 		src_sen_len = src_words.size();
 		src_span_to_tgt_span.resize(src_sen_len);
+		src_idx_to_tgt_idx.resize(src_sen_len);
 		src_span_to_alignment_agreement_flag.resize(src_sen_len);
 		src_span_to_node_flag.resize(src_sen_len);
 		src_span_to_rules.resize(src_sen_len);
@@ -20,6 +21,7 @@ TreeStrPair::TreeStrPair(string &line_tree,string &line_str,string &line_align)
 			src_span_to_rules.at(beg).resize(src_sen_len-beg);
 		}
 		tgt_span_to_src_span.resize(tgt_sen_len);
+		tgt_idx_to_src_idx.resize(tgt_sen_len);
 		for (int beg=0;beg<tgt_sen_len;beg++)
 		{
 			tgt_span_to_src_span.at(beg).resize(tgt_sen_len-beg,make_pair(-1,-1));
@@ -113,6 +115,8 @@ void TreeStrPair::load_alignment(const string &line_align)
 		int tgt_idx = stoi(idx_pair.at(1));
 		src_span_to_tgt_span[src_idx][0] = merge_span(src_span_to_tgt_span[src_idx][0],make_pair(tgt_idx,0));
 		tgt_span_to_src_span[tgt_idx][0] = merge_span(tgt_span_to_src_span[tgt_idx][0],make_pair(src_idx,0));
+		src_idx_to_tgt_idx[src_idx].push_back(tgt_idx);
+		tgt_idx_to_src_idx[tgt_idx].push_back(src_idx);
 	}
 }
 

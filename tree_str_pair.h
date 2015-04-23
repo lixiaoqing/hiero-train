@@ -49,7 +49,9 @@ class TreeStrPair
 	public:
 		SyntaxNode* root;
 		vector<vector<pair<int,int> > > src_span_to_tgt_span;			//记录每个源端span投射到目标端的span，span用起始位置和跨度长度来表示
-		vector<vector<pair<int,int> > > tgt_span_to_src_span;			//记录每个目标端端span投射到源的span
+		vector<vector<pair<int,int> > > tgt_span_to_src_span;			//记录每个目标端span投射到源的span
+		vector<vector<int> > src_idx_to_tgt_idx;						//记录每个源端位置对应的目标端位置
+		vector<vector<int> > tgt_idx_to_src_idx;						//记录每个目标端位置对应的源端位置
 		vector<vector<bool> > src_span_to_node_flag;					//记录每个源端span是否有对应的句法节点
 		vector<vector<bool> > src_span_to_alignment_agreement_flag;		//记录每个源端span是否满足对齐一致性
 		vector<vector<vector<string> > > src_span_to_rules;				//记录每个源端span能抽取的所有规则

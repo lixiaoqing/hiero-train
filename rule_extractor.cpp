@@ -90,12 +90,15 @@ void RuleExtractor::generate_rule_according_to_src_spans(pair<int,int> span,pair
 	string rule_tgt = get_words_according_to_spans(tgt_span,tgt_span_X1,tgt_span_X2,tspair->tgt_words); // 生成规则目标端的字符串表示
 	if (get_word_num(rule_tgt) > MAX_RULE_TGT_LEN)
 		return;
+	/*
 	string type = "mono";
 	if (tgt_span_X2.first != -1 && tgt_span_X2.first<tgt_span_X1.first)
 	{
 		type = "swap";
 	}
-	string rule = rule_src+" [X] ||| "+rule_tgt+" [X] ||| "+type;
+	*/
+	string alignment = get_alignment_inside_rule(span,span_X1,span_X2,tgt_span,tgt_span_X1,tgt_span_X2);
+	string rule = rule_src+" [X] ||| "+rule_tgt+" [X] ||| "+alignment;
 	tspair->src_span_to_rules[span.first][span.second].push_back(rule);
 }
 
@@ -137,6 +140,90 @@ string RuleExtractor::get_words_according_to_spans(pair<int,int> span,pair<int,i
 	return rule_str;
 }
 
+string RuleExtractor::get_alignment_inside_rule(pair<int,int> span,pair<int,int> span_X1,pair<int,int> span_X2,pair<int,int> tgt_span,pair<int,int> tgt_span_X1,pair<int,int> tgt_span_X2)
+{
+	// 遍历规则目标端，获取规则目标端每个单词在句子中的位置到它在规则中的位置的映射，以及两个变量在规则目标端的位置
+	map<int,int> tgt_sen_idx_to_rule_idx;
+	int sen_idx = tgt_span.first;
+	int rule_idx = 0;
+	int rule_tgt_idx_X1 = -1;
+	int rule_tgt_idx_X2 = -1;
+	while (sen_idx <= tgt_span.first+tgt_span.second)
+	{
+		if (sen_idx>=tgt_span_X1.first && sen_idx<=tgt_span_X1.first+tgt_span_X1.second)									// 遇到第一个变量的起始位置
+		{
+			while(sen_idx>=tgt_span_X1.first && sen_idx<=tgt_span_X1.first+tgt_span_X1.second)								// 跳过第一个变量的剩余位置
+			{
+				rule_tgt_idx_X1 = rule_idx;
+				sen_idx++;
+			}
+			rule_idx++;
+		}
+		else if (tgt_span_X2.first != -1 && sen_idx>=tgt_span_X2.first && sen_idx<=tgt_span_X2.first+tgt_span_X2.second)	// 遇到第二个变量的起始位置
+		{
+			while(sen_idx>=tgt_span_X2.first && sen_idx<=tgt_span_X2.first+tgt_span_X2.second)								// 跳过第二个变量的剩余位置
+			{
+				rule_tgt_idx_X2 = rule_idx;
+				sen_idx++;
+			}
+			rule_idx++;
+		}
+		else
+		{
+			tgt_sen_idx_to_rule_idx[sen_idx] = rule_idx;
+			sen_idx++;
+			rule_idx++;
+		}
+	}
+
+	// 遍历规则源端，先找到规则源端每个单词在目标端句子中对应的位置，再找在规则目标端对应的位置
+	vector<set<int> > alignments_for_each_word_in_rule_src;
+	alignments_for_each_word_in_rule_src.resize(span.second+1);
+	sen_idx = span.first;
+	rule_idx = 0;
+	while (sen_idx <= span.first+span.second)
+	{
+		if (sen_idx>=span_X1.first && sen_idx<=span_X1.first+span_X1.second)								// 遇到第一个变量的起始位置
+		{
+			alignments_for_each_word_in_rule_src.at(rule_idx).insert(rule_tgt_idx_X1);
+			while(sen_idx>=span_X1.first && sen_idx<=span_X1.first+span_X1.second)							// 跳过第一个变量的剩余位置
+			{
+				sen_idx++;
+			}
+			rule_idx++;
+		}
+		else if (span_X2.first != -1 && sen_idx>=span_X2.first && sen_idx<=span_X2.first+span_X2.second)	// 遇到第二个变量的起始位置
+		{
+			alignments_for_each_word_in_rule_src.at(rule_idx).insert(rule_tgt_idx_X2);
+			while(sen_idx>=span_X2.first && sen_idx<=span_X2.first+span_X2.second)							// 跳过第二个变量的剩余位置
+			{
+				sen_idx++;
+			}
+			rule_idx++;
+		}
+		else
+		{
+			for (int tgt_sen_idx : tspair->src_idx_to_tgt_idx.at(sen_idx))
+			{
+				alignments_for_each_word_in_rule_src.at(rule_idx).insert(tgt_sen_idx_to_rule_idx[tgt_sen_idx]);
+			}
+			sen_idx++;
+			rule_idx++;
+		}
+	}
+
+	string alignment;
+	for (int i=0;i<alignments_for_each_word_in_rule_src.size();i++)
+	{
+		for (int rule_tgt_idx : alignments_for_each_word_in_rule_src.at(i))
+		{
+			alignment += to_string(i)+"-"+to_string(rule_tgt_idx)+" ";
+		}
+	}
+	TrimLine(alignment);
+	return alignment;
+}
+
 void RuleExtractor::extract_rules()
 {
 	fill_span2rules_with_AX_XA_XAX_rule();                            //形如AX,XA和XAX的规则
@@ -170,7 +257,7 @@ void RuleExtractor::dump_rules(ofstream &fc2e,ofstream &fe2c)
 	{
 		fe2c<<kvp.first<<" ||| "<<kvp.second<<endl;
 		vector<string> vs = Split(kvp.first," ||| ");
-		fc2e<<vs[1]<<" ||| "<<vs[0]<<" ||| "<<kvp.second<<endl;
+		fc2e<<vs[1]<<" ||| "<<vs[0]<<" ||| "<<vs[2]<<" ||| "<<kvp.second<<endl;
 	}
 }
 
