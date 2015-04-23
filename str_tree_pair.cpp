@@ -1,41 +1,42 @@
-#include "tree_str_pair.h"
+#include "str_tree_pair.h"
 
-TreeStrPair::TreeStrPair(string &line_str,string &line_tree,string &line_align)
+StrTreePair::StrTreePair(string &line_str,string &line_tree,string &line_align)
 {
-	src_words = Split(line_str);
-	src_sen_len = src_words.size();
-	src_span_to_tgt_span.resize(src_sen_len);
-	src_idx_to_tgt_idx.resize(src_sen_len);
-	src_span_to_alignment_agreement_flag.resize(src_sen_len);
-	src_span_to_rules.resize(src_sen_len);
-	for (int beg=0;beg<src_sen_len;beg++)
-	{
-		src_span_to_tgt_span.at(beg).resize(src_sen_len-beg,make_pair(-1,-1));
-		src_span_to_alignment_agreement_flag.at(beg).resize(src_sen_len-beg,false);
-		src_span_to_rules.at(beg).resize(src_sen_len-beg);
-	}
 	if (line_tree.size() > 3)
 	{
-		build_tree_from_str(line_tree);
+		src_words = Split(line_str);
+		build_tree_from_str(line_tree,root_tgt,tgt_words);
+
+		src_sen_len = src_words.size();
 		tgt_sen_len = tgt_words.size();
-		tgt_span_to_node_flag.resize(tgt_sen_len);
-		tgt_span_to_alignment_agreement_flag.resize(tgt_sen_len);
-		tgt_span_to_src_span.resize(tgt_sen_len);
+
+		src_idx_to_tgt_idx.resize(src_sen_len);
+		src_span_to_tgt_span.resize(src_sen_len);
+		src_span_to_alignment_agreement_flag.resize(src_sen_len);
+		src_span_to_rules.resize(src_sen_len);
+		for (int beg=0;beg<src_sen_len;beg++)
+		{
+			src_span_to_tgt_span.at(beg).resize(src_sen_len-beg,make_pair(-1,-1));
+			src_span_to_alignment_agreement_flag.at(beg).resize(src_sen_len-beg,false);
+			src_span_to_rules.at(beg).resize(src_sen_len-beg);
+		}
+
 		tgt_idx_to_src_idx.resize(tgt_sen_len);
+		tgt_span_to_src_span.resize(tgt_sen_len);
+		tgt_span_to_node_flag.resize(tgt_sen_len);
 		for (int beg=0;beg<tgt_sen_len;beg++)
 		{
 			tgt_span_to_src_span.at(beg).resize(tgt_sen_len-beg,make_pair(-1,-1));
 			tgt_span_to_node_flag.at(beg).resize(tgt_sen_len-beg,false);
-			tgt_span_to_alignment_agreement_flag.at(beg).resize(tgt_sen_len-beg,false);
 		}
 		load_alignment(line_align);
 		cal_proj_span();
 		check_alignment_agreement();
-		check_frontier_for_nodes_in_subtree(root);
+		cal_span_for_each_node(root_tgt,tgt_span_to_node_flag);
 	}
 	else
 	{
-		root = NULL;
+		root_tgt = NULL;
 	}
 }
 
@@ -45,7 +46,7 @@ TreeStrPair::TreeStrPair(string &line_str,string &line_tree,string &line_align)
  3. 出口参数: 无
  4. 算法简介: 见注释
 ************************************************************************************* */
-void TreeStrPair::build_tree_from_str(const string &line_tree)
+void StrTreePair::build_tree_from_str(const string &line_tree,SyntaxNode* &root,vector<string> &words)
 {
 	vector<string> toks = Split(line_tree);
 	SyntaxNode* cur_node;
@@ -92,8 +93,8 @@ void TreeStrPair::build_tree_from_str(const string &line_tree)
 			//如果是“需要”的情形，则记录中文词的序号
 			if(toks[i+1]==")")
 			{
-				cur_node->tgt_span = make_pair(word_index,0);
-				tgt_words.push_back(toks[i]);
+				cur_node->span = make_pair(word_index,0);
+				words.push_back(toks[i]);
 				word_index++;
 			}
 		}
@@ -107,7 +108,7 @@ void TreeStrPair::build_tree_from_str(const string &line_tree)
  4. 算法简介: 根据每一对对齐的单词，更新每个源端单词对应的目标端span，以及每个目标端
  			  单词对应的源端span
 ************************************************************************************* */
-void TreeStrPair::load_alignment(const string &line_align)
+void StrTreePair::load_alignment(const string &line_align)
 {
 	vector<string> alignments = Split(line_align);
 	for (auto align : alignments)
@@ -123,37 +124,22 @@ void TreeStrPair::load_alignment(const string &line_align)
 }
 
 /**************************************************************************************
- 1. 函数功能: 检查以当前子树中的每个节点是否为边界节点
+ 1. 函数功能: 计算当前子树中的每个节点的span
  2. 入口参数: 当前子树的根节点
  3. 出口参数: 无
- 4. 算法简介: 1) 后序遍历当前子树
- 			  2) 根据子节点的src_span计算当前节点的src_span，并根据预先计算好的源端
-			  	 span到目标端span的映射表得到当前节点的tgt_span
-			  3) 根据预先计算好的词对齐一致性检查表源端span到句法节点的检查表判断当前
-			  	 节点是否为边界节点
+ 4. 算法简介: 后序遍历当前子树，根据第一个和最后一个孩子节点的span计算当前节点的span
 ************************************************************************************* */
-void TreeStrPair::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
+void StrTreePair::cal_span_for_each_node(SyntaxNode* node,vector<vector<bool> > &span_to_node_flag)
 {
-	if (node->children.empty() )                                                                               //单词节点
-	{
-		node->src_span = tgt_span_to_src_span[node->tgt_span.first][node->tgt_span.second];
-		node->type = 0;
+	if (node->children.empty() )                                                                            //单词节点
 		return;
-	}
 	for (const auto child : node->children)
 	{
-		check_frontier_for_nodes_in_subtree(child);
+		cal_span_for_each_node(child,span_to_node_flag);
 	}
-	node->tgt_span = make_pair(node->children.front()->tgt_span.first,node->children.back()->tgt_span.first+
-					 node->children.back()->tgt_span.second - node->children.front()->tgt_span.first);			//更新tgt_span
-	node->src_span = tgt_span_to_src_span[node->tgt_span.first][node->tgt_span.second];							//更新src_span
-
-	tgt_span_to_node_flag[node->tgt_span.first][node->tgt_span.second] = true;								    //顺便更新每个span是否有句法节点
-	node->type = 2;
-	if (tgt_span_to_alignment_agreement_flag[node->tgt_span.first][node->tgt_span.second] == true)
-	{
-		node->type = 1;
-	}
+	node->span = make_pair(node->children.front()->span.first,node->children.back()->span.first+
+				 node->children.back()->span.second - node->children.front()->span.first);
+	span_to_node_flag[node->span.first][node->span.second] = true;											//更新每个span是否有句法节点
 }
 
 /**************************************************************************************
@@ -163,7 +149,7 @@ void TreeStrPair::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
  4. 算法简介: 采用动态规划算法自底向上，自左向右地计算每个span的proj_span，计算公式为
  			  proj_span[beg][len] = proj_span[beg][len-1] + proj_span[beg+len][0]
 ************************************************************************************* */
-void TreeStrPair::cal_proj_span()
+void StrTreePair::cal_proj_span()
 {
 	for (int span_len=1;span_len<src_sen_len;span_len++)
 	{
@@ -187,13 +173,13 @@ void TreeStrPair::cal_proj_span()
  3. 出口参数: 合并后的span
  4. 算法简介: 见注释
 ************************************************************************************* */
-pair<int,int> TreeStrPair::merge_span(pair<int,int> span1,pair<int,int> span2)
+Span StrTreePair::merge_span(Span span1,Span span2)
 {
 	if (span2.first == -1)
 		return span1;
 	if (span1.first == -1)
 		return span2;
-	pair<int,int> span;
+	Span span;
 	span.first = min(span1.first,span2.first);												// 合并后span的左边界
 	span.second = max(span1.first+span1.second,span2.first+span2.second) - span.first;		// 合并后span的长度，即右边界减去左边界
 	return span;
@@ -206,45 +192,24 @@ pair<int,int> TreeStrPair::merge_span(pair<int,int> span1,pair<int,int> span2)
  4. 算法简介: 根据预先计算好的源端span和目标端span的映射表，检查源端span映射到目标端
  			  再映射回来的span是否越过了原来源端span的边界
 ************************************************************************************* */
-void TreeStrPair::check_alignment_agreement()
+void StrTreePair::check_alignment_agreement()
 {
 	for (int beg=0;beg<src_sen_len;beg++)
 	{
 		for (int span_len=0;span_len<src_sen_len-beg;span_len++)
 		{
-			pair<int,int> tgt_span = src_span_to_tgt_span[beg][span_len];
+			Span tgt_span = src_span_to_tgt_span[beg][span_len];
 			if (tgt_span.first == -1)
 			{
 				src_span_to_alignment_agreement_flag[beg][span_len] = false;	  //如果目标端span为空，认为不满足对齐一致性
 			}
 			else
 			{
-				pair<int,int> proj_src_span = tgt_span_to_src_span[tgt_span.first][tgt_span.second];
+				Span proj_src_span = tgt_span_to_src_span[tgt_span.first][tgt_span.second];
 				//如果目标端span投射回来的源端span不超原来的源端span，则满足对齐一致性
 				if (proj_src_span.first >= beg && proj_src_span.first+proj_src_span.second <= beg+span_len)
 				{
 					src_span_to_alignment_agreement_flag[beg][span_len] = true;
-				}
-			}
-		}
-	}
-
-	for (int beg=0;beg<tgt_sen_len;beg++)
-	{
-		for (int span_len=0;span_len<tgt_sen_len-beg;span_len++)
-		{
-			pair<int,int> src_span = tgt_span_to_src_span[beg][span_len];
-			if (src_span.first == -1)
-			{
-				tgt_span_to_alignment_agreement_flag[beg][span_len] = false;	  //如果源端span为空，认为不满足对齐一致性
-			}
-			else
-			{
-				pair<int,int> proj_tgt_span = src_span_to_tgt_span[src_span.first][src_span.second];
-				//如果目标端span投射回来的源端span不超原来的源端span，则满足对齐一致性
-				if (proj_tgt_span.first >= beg && proj_tgt_span.first+proj_tgt_span.second <= beg+span_len)
-				{
-					tgt_span_to_alignment_agreement_flag[beg][span_len] = true;
 				}
 			}
 		}

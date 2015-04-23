@@ -2,7 +2,7 @@
 #define RULE_EXTRACTOR_H
 #include "stdafx.h"
 #include "myutils.h"
-#include "tree_str_pair.h"
+#include "str_tree_pair.h"
 
 class RuleExtractor
 {
@@ -10,7 +10,7 @@ class RuleExtractor
 		RuleExtractor(string &line_str,string &line_tree,string &line_align);
 		~RuleExtractor()
 		{
-			delete tspair;
+			delete stpair;
 		}
 		void extract_rules();
 		void dump_rules(ofstream &fs2t,ofstream &ft2s);
@@ -20,15 +20,15 @@ class RuleExtractor
 		void fill_span2rules_with_AXX_XXA_rule();
 		void fill_span2rules_with_AXB_AXBX_XAXB_rule();
 		void fill_span2rules_with_AXBXC_rule();
-		string get_words_according_to_spans(pair<int,int> span,pair<int,int> span_X1,pair<int,int> span_X2,vector<string> &words);
-		string get_alignment_inside_rule(pair<int,int> span,pair<int,int> span_X1,pair<int,int> span_X2,pair<int,int> tgt_span,pair<int,int> tgt_span_X1,pair<int,int> tgt_span_X2);
-		void generate_rule_according_to_src_spans(pair<int,int> span,pair<int,int> span_X1,pair<int,int> span_X2);
-		bool check_alignment_constraint(pair<int,int> span,pair<int,int> span_X1,pair<int,int> span_X2);
-		bool check_node_constraint(pair<int,int> span,pair<int,int> span_X1,pair<int,int> span_X2);
-		bool check_boundary_constraint(pair<int,int> span_X1,pair<int,int> span_X2);
+		string get_words_according_to_spans(Span span,Span span_X1,Span span_X2,vector<string> &words);
+		string get_alignment_inside_rule(Span span,Span span_X1,Span span_X2,Span tgt_span,Span tgt_span_X1,Span tgt_span_X2);
+		void generate_rule_according_to_src_spans(Span span,Span span_X1,Span span_X2);
+		bool check_alignment_constraint(Span span,Span span_X1,Span span_X2);
+		bool check_node_constraint(Span span,Span span_X1,Span span_X2,vector<vector<bool> > &span_to_node_flag);
+		bool check_boundary_constraint(Span span_X1,Span span_X2);
 
 	private:
-		TreeStrPair *tspair;
+		StrTreePair *stpair;
 		map<string,int> rule_table;
 };
 
