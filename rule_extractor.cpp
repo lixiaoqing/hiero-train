@@ -176,16 +176,18 @@ string RuleExtractor::get_alignment_inside_rule(pair<int,int> span,pair<int,int>
 		}
 	}
 
-	// 遍历规则源端，先找到规则源端每个单词在目标端句子中对应的位置，再找在规则目标端对应的位置
-	vector<set<int> > alignments_for_each_word_in_rule_src;
-	alignments_for_each_word_in_rule_src.resize(span.second+1);
+	// 遍历规则源端，先找到规则源端每个单词(或变量)在目标端句子中对应的位置，再找在规则目标端对应的位置
+	vector<set<int> > alignments_for_each_token_in_rule_src;
+	alignments_for_each_token_in_rule_src.resize(span.second+1);
 	sen_idx = span.first;
 	rule_idx = 0;
+	int rule_src_idx_X1 = -1;
+	int rule_src_idx_X2 = -1;
 	while (sen_idx <= span.first+span.second)
 	{
 		if (sen_idx>=span_X1.first && sen_idx<=span_X1.first+span_X1.second)								// 遇到第一个变量的起始位置
 		{
-			alignments_for_each_word_in_rule_src.at(rule_idx).insert(rule_tgt_idx_X1);
+			rule_src_idx_X1 = rule_idx;
 			while(sen_idx>=span_X1.first && sen_idx<=span_X1.first+span_X1.second)							// 跳过第一个变量的剩余位置
 			{
 				sen_idx++;
@@ -194,7 +196,7 @@ string RuleExtractor::get_alignment_inside_rule(pair<int,int> span,pair<int,int>
 		}
 		else if (span_X2.first != -1 && sen_idx>=span_X2.first && sen_idx<=span_X2.first+span_X2.second)	// 遇到第二个变量的起始位置
 		{
-			alignments_for_each_word_in_rule_src.at(rule_idx).insert(rule_tgt_idx_X2);
+			rule_src_idx_X2 = rule_idx;
 			while(sen_idx>=span_X2.first && sen_idx<=span_X2.first+span_X2.second)							// 跳过第二个变量的剩余位置
 			{
 				sen_idx++;
@@ -205,7 +207,7 @@ string RuleExtractor::get_alignment_inside_rule(pair<int,int> span,pair<int,int>
 		{
 			for (int tgt_sen_idx : tspair->src_idx_to_tgt_idx.at(sen_idx))
 			{
-				alignments_for_each_word_in_rule_src.at(rule_idx).insert(tgt_sen_idx_to_rule_idx[tgt_sen_idx]);
+				alignments_for_each_token_in_rule_src.at(rule_idx).insert(tgt_sen_idx_to_rule_idx[tgt_sen_idx]);
 			}
 			sen_idx++;
 			rule_idx++;
@@ -213,12 +215,17 @@ string RuleExtractor::get_alignment_inside_rule(pair<int,int> span,pair<int,int>
 	}
 
 	string alignment;
-	for (int i=0;i<alignments_for_each_word_in_rule_src.size();i++)
+	for (int i=0;i<alignments_for_each_token_in_rule_src.size();i++)
 	{
-		for (int rule_tgt_idx : alignments_for_each_word_in_rule_src.at(i))
+		for (int rule_tgt_idx : alignments_for_each_token_in_rule_src.at(i))
 		{
 			alignment += to_string(i)+"-"+to_string(rule_tgt_idx)+" ";
 		}
+	}
+	alignment += to_string(rule_src_idx_X1)+"-"+to_string(rule_tgt_idx_X1)+" ";
+	if (rule_src_idx_X2 != -1)
+	{
+		alignment += to_string(rule_src_idx_X2)+"-"+to_string(rule_tgt_idx_X2)+" ";
 	}
 	TrimLine(alignment);
 	return alignment;
@@ -257,7 +264,13 @@ void RuleExtractor::dump_rules(ofstream &fc2e,ofstream &fe2c)
 	{
 		fe2c<<kvp.first<<" ||| "<<kvp.second<<endl;
 		vector<string> vs = Split(kvp.first," ||| ");
-		fc2e<<vs[1]<<" ||| "<<vs[0]<<" ||| "<<vs[2]<<" ||| "<<kvp.second<<endl;
+		fc2e<<vs[1]<<" ||| "<<vs[0]<<" ||| ";
+		for (auto &idx_e2c_pair : Split(vs[2]))
+		{
+			int sep = idx_e2c_pair.find('-');
+			fc2e<<idx_e2c_pair.substr(sep+1)<<'-'<<idx_e2c_pair.substr(0,sep)<<' ';
+		}
+		fc2e<<"||| "<<kvp.second<<endl;
 	}
 }
 
