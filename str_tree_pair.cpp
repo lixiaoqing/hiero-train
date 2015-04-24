@@ -29,14 +29,16 @@ StrTreePair::StrTreePair(string &line_str,string &line_tree,string &line_align)
 			tgt_span_to_src_span.at(beg).resize(tgt_sen_len-beg,make_pair(-1,-1));
 			tgt_span_to_node_flag.at(beg).resize(tgt_sen_len-beg,false);
 		}
-		load_alignment(line_align);
+		flag = load_alignment(line_align);
+		if (flag == false)
+			return;
 		cal_proj_span();
 		check_alignment_agreement();
 		cal_span_for_each_node(root_tgt,tgt_span_to_node_flag);
 	}
 	else
 	{
-		root_tgt = NULL;
+		flag = false;
 	}
 }
 
@@ -108,7 +110,7 @@ void StrTreePair::build_tree_from_str(const string &line_tree,SyntaxNode* &root,
  4. 算法简介: 根据每一对对齐的单词，更新每个源端单词对应的目标端span，以及每个目标端
  			  单词对应的源端span
 ************************************************************************************* */
-void StrTreePair::load_alignment(const string &line_align)
+bool StrTreePair::load_alignment(const string &line_align)
 {
 	vector<string> alignments = Split(line_align);
 	for (auto align : alignments)
@@ -116,11 +118,14 @@ void StrTreePair::load_alignment(const string &line_align)
 		vector<string> idx_pair = Split(align,"-");
 		int src_idx = stoi(idx_pair.at(0));
 		int tgt_idx = stoi(idx_pair.at(1));
+		if (src_idx >= src_sen_len || tgt_idx >= tgt_sen_len)
+			return false;
 		src_span_to_tgt_span[src_idx][0] = merge_span(src_span_to_tgt_span[src_idx][0],make_pair(tgt_idx,0));
 		tgt_span_to_src_span[tgt_idx][0] = merge_span(tgt_span_to_src_span[tgt_idx][0],make_pair(src_idx,0));
 		src_idx_to_tgt_idx[src_idx].push_back(tgt_idx);
 		tgt_idx_to_src_idx[tgt_idx].push_back(src_idx);
 	}
+	return true;
 }
 
 /**************************************************************************************

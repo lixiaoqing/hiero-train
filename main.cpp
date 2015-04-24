@@ -18,6 +18,8 @@ int main(int argc, char* argv[])
 		getline(ft,line_tree);
 		getline(fa,line_align);
 		RuleExtractor rule_extractor(line_str,line_tree,line_align);
+		if (rule_extractor.flag == false)
+			continue;
 		rule_extractor.extract_rules();
 		rule_extractor.dump_rules(fs2t,ft2s);
 		num++;

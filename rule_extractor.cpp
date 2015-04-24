@@ -3,6 +3,7 @@
 RuleExtractor::RuleExtractor(string &line_str,string &line_tree,string &line_align)
 {
 	stpair = new StrTreePair(line_str,line_tree,line_align);
+	flag = stpair->flag;
 }
 
 /**************************************************************************************
