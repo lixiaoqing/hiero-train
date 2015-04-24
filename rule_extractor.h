@@ -27,6 +27,8 @@ class RuleExtractor
 		bool check_node_constraint(Span span,Span span_X1,Span span_X2,vector<vector<bool> > &span_to_node_flag);
 		bool check_boundary_constraint(Span span_X1,Span span_X2);
 
+	public:
+		bool flag;				//记录初始化是否成功
 	private:
 		TreePair *tree_pair;
 		map<string,int> rule_table;

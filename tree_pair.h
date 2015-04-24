@@ -39,13 +39,14 @@ class TreePair
 
 	private:
 		void build_tree_from_str(const string &line_of_tree,SyntaxNode* &root,vector<string> &words);
-		void load_alignment(const string &align_line);
+		bool load_alignment(const string &align_line);
 		void cal_proj_span();
 		Span merge_span(Span span1,Span span2);
 		void check_alignment_agreement();
 		void cal_span_for_each_node(SyntaxNode* node,vector<vector<bool> > &span_to_node_flag);
 
 	public:
+		bool flag;														//记录初始化是否成功
 		SyntaxNode* root_src;
 		SyntaxNode* root_tgt;
 		vector<vector<Span> > src_span_to_tgt_span;						//记录每个源端span投射到目标端的span

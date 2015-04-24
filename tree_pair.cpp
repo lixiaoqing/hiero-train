@@ -5,14 +5,10 @@ TreePair::TreePair(string &line_tree_src,string &line_tree_tgt,string &line_alig
 	if (line_tree_src.size() > 3 && line_tree_tgt.size() > 3)
 	{
 		build_tree_from_str(line_tree_src,root_src,src_words);
-		cout<<"load src tree over\n";	//4debug
 		build_tree_from_str(line_tree_tgt,root_tgt,tgt_words);
-		cout<<"load tgt tree over\n";	//4debug
 
 		src_sen_len = src_words.size();
 		tgt_sen_len = tgt_words.size();
-		cout<<"src sen len: "<<src_sen_len<<endl;	//4debug
-		cout<<"tgt sen len: "<<tgt_sen_len<<endl;	//4debug
 
 		src_idx_to_tgt_idx.resize(src_sen_len);
 		src_span_to_tgt_span.resize(src_sen_len);
@@ -36,22 +32,17 @@ TreePair::TreePair(string &line_tree_src,string &line_tree_tgt,string &line_alig
 			tgt_span_to_node_flag.at(beg).resize(tgt_sen_len-beg,false);
 		}
 
-		load_alignment(line_align);
-		cout<<"load alignment over\n";	//4debug
+		flag = load_alignment(line_align);
+		if (flag == false)
+			return;
 		cal_proj_span();
-		cout<<"cal proj span over\n";	//4debug
 		check_alignment_agreement();
-		cout<<"check aignment agreement over\n";	//4debug
 		cal_span_for_each_node(root_src,src_span_to_node_flag);
-		cout<<"cal span for src tree over\n";	//4debug
 		cal_span_for_each_node(root_tgt,tgt_span_to_node_flag);
-		cout<<"cal span for tgt tree over\n";	//4debug
-		cout<<"init over\n";	//4debug
 	}
 	else
 	{
-		root_src = NULL;
-		root_tgt = NULL;
+		flag = false;
 	}
 }
 
@@ -123,7 +114,7 @@ void TreePair::build_tree_from_str(const string &line_tree,SyntaxNode* &root,vec
  4. 算法简介: 根据每一对对齐的单词，更新每个源端单词对应的目标端span，以及每个目标端
  			  单词对应的源端span
 ************************************************************************************* */
-void TreePair::load_alignment(const string &line_align)
+bool TreePair::load_alignment(const string &line_align)
 {
 	vector<string> alignments = Split(line_align);
 	for (auto align : alignments)
@@ -131,11 +122,14 @@ void TreePair::load_alignment(const string &line_align)
 		vector<string> idx_pair = Split(align,"-");
 		int src_idx = stoi(idx_pair.at(0));
 		int tgt_idx = stoi(idx_pair.at(1));
+		if (src_idx >= src_sen_len || tgt_idx >= tgt_sen_len)
+			return false;
 		src_span_to_tgt_span[src_idx][0] = merge_span(src_span_to_tgt_span[src_idx][0],make_pair(tgt_idx,0));
 		tgt_span_to_src_span[tgt_idx][0] = merge_span(tgt_span_to_src_span[tgt_idx][0],make_pair(src_idx,0));
 		src_idx_to_tgt_idx[src_idx].push_back(tgt_idx);
 		tgt_idx_to_src_idx[tgt_idx].push_back(src_idx);
 	}
+	return true;
 }
 
 /**************************************************************************************
