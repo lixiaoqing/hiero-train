@@ -240,7 +240,7 @@ void RuleExtractor::dump_rules(ofstream &fs2t,ofstream &ft2s)
 	}
 	for (auto &kvp : rule_table)
 	{
-		fs2t<<kvp.first<<" ||| "<<kvp.second<<endl;
+		fs2t<<kvp.first<<" ||| "<<kvp.second<<" |||"<<endl;
 		vector<string> vs = Split(kvp.first," ||| ");
 		ft2s<<vs[1]<<" ||| "<<vs[0]<<" ||| ";
 		for (auto &idx_e2c_pair : Split(vs[2]))
