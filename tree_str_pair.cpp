@@ -1,11 +1,11 @@
-#include "str_tree_pair.h"
+#include "tree_str_pair.h"
 
-StrTreePair::StrTreePair(string &line_str,string &line_tree,string &line_align)
+TreeStrPair::TreeStrPair(string &line_tree,string &line_str,string &line_align)
 {
 	if (line_tree.size() > 3)
 	{
-		src_words = Split(line_str);
-		build_tree_from_str(line_tree,root_tgt,tgt_words);
+		build_tree_from_str(line_tree,root_src,src_words);
+		tgt_words = Split(line_str);
 
 		src_sen_len = src_words.size();
 		tgt_sen_len = tgt_words.size();
@@ -13,28 +13,28 @@ StrTreePair::StrTreePair(string &line_str,string &line_tree,string &line_align)
 		src_idx_to_tgt_idx.resize(src_sen_len);
 		src_span_to_tgt_span.resize(src_sen_len);
 		src_span_to_alignment_agreement_flag.resize(src_sen_len);
+		src_span_to_node_flag.resize(src_sen_len);
 		src_span_to_rules.resize(src_sen_len);
 		for (int beg=0;beg<src_sen_len;beg++)
 		{
 			src_span_to_tgt_span.at(beg).resize(src_sen_len-beg,make_pair(-1,-1));
 			src_span_to_alignment_agreement_flag.at(beg).resize(src_sen_len-beg,false);
+			src_span_to_node_flag.at(beg).resize(src_sen_len-beg,false);
 			src_span_to_rules.at(beg).resize(src_sen_len-beg);
 		}
 
 		tgt_idx_to_src_idx.resize(tgt_sen_len);
 		tgt_span_to_src_span.resize(tgt_sen_len);
-		tgt_span_to_node_flag.resize(tgt_sen_len);
 		for (int beg=0;beg<tgt_sen_len;beg++)
 		{
 			tgt_span_to_src_span.at(beg).resize(tgt_sen_len-beg,make_pair(-1,-1));
-			tgt_span_to_node_flag.at(beg).resize(tgt_sen_len-beg,false);
 		}
 		flag = load_alignment(line_align);
 		if (flag == false)
 			return;
 		cal_proj_span();
 		check_alignment_agreement();
-		cal_span_for_each_node(root_tgt,tgt_span_to_node_flag);
+		cal_span_for_each_node(root_src,src_span_to_node_flag);
 	}
 	else
 	{
@@ -48,7 +48,7 @@ StrTreePair::StrTreePair(string &line_str,string &line_tree,string &line_align)
  3. 出口参数: 无
  4. 算法简介: 见注释
 ************************************************************************************* */
-void StrTreePair::build_tree_from_str(const string &line_tree,SyntaxNode* &root,vector<string> &words)
+void TreeStrPair::build_tree_from_str(const string &line_tree,SyntaxNode* &root,vector<string> &words)
 {
 	vector<string> toks = Split(line_tree);
 	SyntaxNode* cur_node;
@@ -110,7 +110,7 @@ void StrTreePair::build_tree_from_str(const string &line_tree,SyntaxNode* &root,
  4. 算法简介: 根据每一对对齐的单词，更新每个源端单词对应的目标端span，以及每个目标端
  			  单词对应的源端span
 ************************************************************************************* */
-bool StrTreePair::load_alignment(const string &line_align)
+bool TreeStrPair::load_alignment(const string &line_align)
 {
 	vector<string> alignments = Split(line_align);
 	for (auto align : alignments)
@@ -134,7 +134,7 @@ bool StrTreePair::load_alignment(const string &line_align)
  3. 出口参数: 无
  4. 算法简介: 后序遍历当前子树，根据第一个和最后一个孩子节点的span计算当前节点的span
 ************************************************************************************* */
-void StrTreePair::cal_span_for_each_node(SyntaxNode* node,vector<vector<bool> > &span_to_node_flag)
+void TreeStrPair::cal_span_for_each_node(SyntaxNode* node,vector<vector<bool> > &span_to_node_flag)
 {
 	if (node->children.empty() )                                                                            //单词节点
 		return;
@@ -154,7 +154,7 @@ void StrTreePair::cal_span_for_each_node(SyntaxNode* node,vector<vector<bool> > 
  4. 算法简介: 采用动态规划算法自底向上，自左向右地计算每个span的proj_span，计算公式为
  			  proj_span[beg][len] = proj_span[beg][len-1] + proj_span[beg+len][0]
 ************************************************************************************* */
-void StrTreePair::cal_proj_span()
+void TreeStrPair::cal_proj_span()
 {
 	for (int span_len=1;span_len<src_sen_len;span_len++)
 	{
@@ -178,7 +178,7 @@ void StrTreePair::cal_proj_span()
  3. 出口参数: 合并后的span
  4. 算法简介: 见注释
 ************************************************************************************* */
-Span StrTreePair::merge_span(Span span1,Span span2)
+Span TreeStrPair::merge_span(Span span1,Span span2)
 {
 	if (span2.first == -1)
 		return span1;
@@ -197,7 +197,7 @@ Span StrTreePair::merge_span(Span span1,Span span2)
  4. 算法简介: 根据预先计算好的源端span和目标端span的映射表，检查源端span映射到目标端
  			  再映射回来的span是否越过了原来源端span的边界
 ************************************************************************************* */
-void StrTreePair::check_alignment_agreement()
+void TreeStrPair::check_alignment_agreement()
 {
 	for (int beg=0;beg<src_sen_len;beg++)
 	{

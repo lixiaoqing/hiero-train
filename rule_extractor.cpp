@@ -1,9 +1,9 @@
 #include "rule_extractor.h"
 
-RuleExtractor::RuleExtractor(string &line_str,string &line_tree,string &line_align)
+RuleExtractor::RuleExtractor(string &line_tree,string &line_str,string &line_align)
 {
-	stpair = new StrTreePair(line_str,line_tree,line_align);
-	flag = stpair->flag;
+	tspair = new TreeStrPair(line_tree,line_str,line_align);
+	flag = tspair->flag;
 }
 
 /**************************************************************************************
@@ -14,15 +14,15 @@ RuleExtractor::RuleExtractor(string &line_str,string &line_tree,string &line_ali
 ************************************************************************************* */
 bool RuleExtractor::check_alignment_constraint(Span span,Span span_X1,Span span_X2)
 {
-	if (stpair->src_span_to_alignment_agreement_flag[span.first][span.second] == false)
+	if (tspair->src_span_to_alignment_agreement_flag[span.first][span.second] == false)
 		return false;
 	if (span_X1.first == -1)
 		return true;
-	if (stpair->src_span_to_alignment_agreement_flag[span_X1.first][span_X1.second] == false)
+	if (tspair->src_span_to_alignment_agreement_flag[span_X1.first][span_X1.second] == false)
 		return false;
 	if (span_X2.first == -1)
 		return true;
-	if (stpair->src_span_to_alignment_agreement_flag[span_X2.first][span_X2.second] == false)
+	if (tspair->src_span_to_alignment_agreement_flag[span_X2.first][span_X2.second] == false)
 		return false;
 	return true;
 }
@@ -59,25 +59,25 @@ void RuleExtractor::generate_rule_according_to_src_spans(Span span,Span span_X1,
 	//如果整个span或变量span不满足对齐一致性
 	if (check_alignment_constraint(span,span_X1,span_X2)==false)
 		return;
-	Span tgt_span = stpair->src_span_to_tgt_span[span.first][span.second];						// 获取规则目标端以及其中变量的跨度
-	Span tgt_span_X1 = stpair->src_span_to_tgt_span[span_X1.first][span_X1.second];
+	//如果整个span或变量span不对应句法节点
+	if (check_node_constraint(span,span_X1,span_X2,tspair->src_span_to_node_flag)==false)
+		return;
+	string rule_src = get_words_according_to_spans(span,span_X1,span_X2,tspair->src_words);				// 生成规则源端的字符串表示
+	if (get_word_num(rule_src) > MAX_RULE_SRC_LEN)
+		return;
+	Span tgt_span = tspair->src_span_to_tgt_span[span.first][span.second];								// 获取规则目标端以及其中变量的跨度
+	Span tgt_span_X1 = tspair->src_span_to_tgt_span[span_X1.first][span_X1.second];
 	Span tgt_span_X2 = make_pair(-1,-1);
 	if (span_X2.first != -1)
 	{
-		tgt_span_X2 = stpair->src_span_to_tgt_span[span_X2.first][span_X2.second];
+		tgt_span_X2 = tspair->src_span_to_tgt_span[span_X2.first][span_X2.second];
 	}
-	//如果整个span或变量span不对应句法节点
-	if (check_node_constraint(tgt_span,tgt_span_X1,tgt_span_X2,stpair->tgt_span_to_node_flag)==false)
-		return;
-	string rule_src = get_words_according_to_spans(span,span_X1,span_X2,stpair->src_words);				// 生成规则源端的字符串表示
-	if (get_word_num(rule_src) > MAX_RULE_SRC_LEN)
-		return;
-	string rule_tgt = get_words_according_to_spans(tgt_span,tgt_span_X1,tgt_span_X2,stpair->tgt_words); // 生成规则目标端的字符串表示
+	string rule_tgt = get_words_according_to_spans(tgt_span,tgt_span_X1,tgt_span_X2,tspair->tgt_words); // 生成规则目标端的字符串表示
 	if (get_word_num(rule_tgt) > MAX_RULE_TGT_LEN)
 		return;
 	string alignment = get_alignment_inside_rule(span,span_X1,span_X2,tgt_span,tgt_span_X1,tgt_span_X2);
 	string rule = rule_src+" [X] ||| "+rule_tgt+" [X] ||| "+alignment;
-	stpair->src_span_to_rules[span.first][span.second].push_back(rule);
+	tspair->src_span_to_rules[span.first][span.second].push_back(rule);
 }
 
 /**************************************************************************************
@@ -128,18 +128,18 @@ string RuleExtractor::get_alignment_inside_rule(Span span,Span span_X1,Span span
 	int rule_tgt_idx_X2 = -1;
 	while (sen_idx <= tgt_span.first+tgt_span.second)
 	{
-		if (sen_idx>=tgt_span_X1.first && sen_idx<=tgt_span_X1.first+tgt_span_X1.second)									// 遇到第一个变量的起始位置
+		if (sen_idx>=tgt_span_X1.first && sen_idx<=tgt_span_X1.first+tgt_span_X1.second)						//遇到第一个变量的起始位置
 		{
-			while(sen_idx>=tgt_span_X1.first && sen_idx<=tgt_span_X1.first+tgt_span_X1.second)								// 跳过第一个变量的剩余位置
+			while(sen_idx>=tgt_span_X1.first && sen_idx<=tgt_span_X1.first+tgt_span_X1.second)					//跳过第一个变量的剩余位置
 			{
 				rule_tgt_idx_X1 = rule_idx;
 				sen_idx++;
 			}
 			rule_idx++;
 		}
-		else if (tgt_span_X2.first != -1 && sen_idx>=tgt_span_X2.first && sen_idx<=tgt_span_X2.first+tgt_span_X2.second)	// 遇到第二个变量的起始位置
+		else if (tgt_span_X2.first != -1 && sen_idx>=tgt_span_X2.first && sen_idx<=tgt_span_X2.first+tgt_span_X2.second)  //第二个变量的起始位置
 		{
-			while(sen_idx>=tgt_span_X2.first && sen_idx<=tgt_span_X2.first+tgt_span_X2.second)								// 跳过第二个变量的剩余位置
+			while(sen_idx>=tgt_span_X2.first && sen_idx<=tgt_span_X2.first+tgt_span_X2.second)					//跳过第二个变量的剩余位置
 			{
 				rule_tgt_idx_X2 = rule_idx;
 				sen_idx++;
@@ -183,7 +183,7 @@ string RuleExtractor::get_alignment_inside_rule(Span span,Span span_X1,Span span
 		}
 		else
 		{
-			for (int tgt_sen_idx : stpair->src_idx_to_tgt_idx.at(sen_idx))
+			for (int tgt_sen_idx : tspair->src_idx_to_tgt_idx.at(sen_idx))
 			{
 				alignments_for_each_token_in_rule_src.at(rule_idx).insert(tgt_sen_idx_to_rule_idx[tgt_sen_idx]);
 			}
@@ -219,7 +219,7 @@ void RuleExtractor::extract_rules()
 
 void RuleExtractor::dump_rules(ofstream &fs2t,ofstream &ft2s)
 {
-	auto &span2rules = stpair->src_span_to_rules;
+	auto &span2rules = tspair->src_span_to_rules;
 	for (int beg=0;beg<span2rules.size();beg++)
 	{
 		for (int span_len=0;span_len<span2rules.at(beg).size();span_len++)
@@ -263,7 +263,7 @@ void RuleExtractor::dump_rules(ofstream &fs2t,ofstream &ft2s)
 ************************************************************************************* */
 void RuleExtractor::fill_span2rules_with_AX_XA_XAX_rule()
 {
-	int src_sen_len = stpair->src_sen_len;
+	int src_sen_len = tspair->src_sen_len;
 	for (int beg_A=0;beg_A<src_sen_len;beg_A++)
 	{
 		for (int len_A=0;beg_A+len_A<src_sen_len && len_A+1<MAX_SPAN_LEN;len_A++)
@@ -322,7 +322,7 @@ void RuleExtractor::fill_span2rules_with_AX_XA_XAX_rule()
 ************************************************************************************* */
 void RuleExtractor::fill_span2rules_with_AXX_XXA_rule()
 {
-	int src_sen_len = stpair->src_sen_len;
+	int src_sen_len = tspair->src_sen_len;
 	for (int beg_A=0;beg_A<src_sen_len;beg_A++)
 	{
 		for (int len_A=0;beg_A+len_A<src_sen_len && len_A<MAX_SPAN_LEN;len_A++)
@@ -376,7 +376,7 @@ void RuleExtractor::fill_span2rules_with_AXX_XXA_rule()
 ************************************************************************************* */
 void RuleExtractor::fill_span2rules_with_AXB_AXBX_XAXB_rule()
 {
-	int src_sen_len = stpair->src_sen_len;
+	int src_sen_len = tspair->src_sen_len;
 	for (int beg_AXB=0;beg_AXB+2<src_sen_len;beg_AXB++)
 	{
 		for (int len_AXB=2;beg_AXB+len_AXB<src_sen_len && len_AXB<MAX_SPAN_LEN;len_AXB++)
@@ -430,7 +430,7 @@ void RuleExtractor::fill_span2rules_with_AXB_AXBX_XAXB_rule()
 ************************************************************************************* */
 void RuleExtractor::fill_span2rules_with_AXBXC_rule()
 {
-	int src_sen_len = stpair->src_sen_len;
+	int src_sen_len = tspair->src_sen_len;
 	for (int beg_AXBXC=0;beg_AXBXC+4<src_sen_len;beg_AXBXC++)
 	{
 		for (int len_AXBXC=4;beg_AXBXC+len_AXBXC<src_sen_len && len_AXBXC<MAX_SPAN_LEN;len_AXBXC++)

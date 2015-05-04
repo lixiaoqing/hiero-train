@@ -2,15 +2,15 @@
 #define RULE_EXTRACTOR_H
 #include "stdafx.h"
 #include "myutils.h"
-#include "str_tree_pair.h"
+#include "tree_str_pair.h"
 
 class RuleExtractor
 {
 	public:
-		RuleExtractor(string &line_str,string &line_tree,string &line_align);
+		RuleExtractor(string &line_tree,string &line_str,string &line_align);
 		~RuleExtractor()
 		{
-			delete stpair;
+			delete tspair;
 		}
 		void extract_rules();
 		void dump_rules(ofstream &fs2t,ofstream &ft2s);
@@ -30,7 +30,7 @@ class RuleExtractor
 	public:
 		bool flag;
 	private:
-		StrTreePair *stpair;
+		TreeStrPair *tspair;
 		map<string,int> rule_table;
 };
 

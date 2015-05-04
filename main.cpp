@@ -4,8 +4,8 @@
 
 int main(int argc, char* argv[])
 {
-	ifstream fs(argv[1]);
-	ifstream ft(argv[2]);
+	ifstream ft(argv[1]);
+	ifstream fs(argv[2]);
 	ifstream fa(argv[3]);
 	string line_tree,line_str,line_align;
 	int num = 0;
@@ -13,11 +13,11 @@ int main(int argc, char* argv[])
 	ofstream ft2s("rules.t2s");
 	if (!fs2t.is_open() || !ft2s.is_open())
 		return 0;
-	while(getline(fs,line_str))
+	while(getline(ft,line_tree))
 	{
-		getline(ft,line_tree);
+		getline(fs,line_str);
 		getline(fa,line_align);
-		RuleExtractor rule_extractor(line_str,line_tree,line_align);
+		RuleExtractor rule_extractor(line_tree,line_str,line_align);
 		if (rule_extractor.flag == false)
 			continue;
 		rule_extractor.extract_rules();
