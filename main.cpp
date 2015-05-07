@@ -7,17 +7,17 @@ int main(int argc, char* argv[])
 	ifstream fs(argv[1]);
 	ifstream ft(argv[2]);
 	ifstream fa(argv[3]);
-	string line_tree,line_str,line_align;
+	string line_src,line_tgt,line_align;
 	int num = 0;
 	ofstream fs2t("rules.s2t");
 	ofstream ft2s("rules.t2s");
 	if (!fs2t.is_open() || !ft2s.is_open())
 		return 0;
-	while(getline(fs,line_str))
+	while(getline(fs,line_src))
 	{
-		getline(ft,line_tree);
+		getline(ft,line_tgt);
 		getline(fa,line_align);
-		RuleExtractor rule_extractor(line_str,line_tree,line_align);
+		RuleExtractor rule_extractor(line_src,line_tgt,line_align);
 		if (rule_extractor.flag == false)
 			continue;
 		rule_extractor.extract_rules();

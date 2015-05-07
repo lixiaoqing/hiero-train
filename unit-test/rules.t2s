@@ -1,12 +1,22 @@
 astronauts [X][X] [X] ||| [X][X] 宇航 员 [X] ||| 0-1 0-2 1-0 ||| 1
-[X][X] [X] ||| [X][X] 的 [X] ||| 0-0 ||| 2
-[X][X] [X][X] [X] ||| [X][X] 的 [X][X] [X] ||| 1-0 0-2 ||| 1
+[X][X] France [X] ||| [X][X] 法国 [X] ||| 1-1 0-0 ||| 1
+[X][X] [X][X] France [X] ||| [X][X] 法国 [X][X] [X] ||| 2-1 1-0 0-2 ||| 1
+[X][X] France [X] ||| [X][X] 法国 的 [X] ||| 1-1 0-0 ||| 1
+[X][X] [X][X] France [X] ||| [X][X] 法国 的 [X][X] [X] ||| 2-1 1-0 0-3 ||| 1
+astronauts [X][X] France [X] ||| [X][X] 法国 的 宇航 员 [X] ||| 2-1 0-3 0-4 1-0 ||| 1
 astronauts [X][X] [X] ||| [X][X] 的 宇航 员 [X] ||| 0-2 0-3 1-0 ||| 1
+astronauts [X] ||| 宇航 员 [X] ||| 0-0 0-1 ||| 1
+coming from [X] ||| 来自 [X] ||| 0-0 1-0 ||| 1
 coming from [X][X] [X] ||| 来自 [X][X] [X] ||| 0-0 1-0 2-1 ||| 2
 astronauts coming from [X][X] [X] ||| 来自 [X][X] 宇航 员 [X] ||| 1-0 2-0 0-2 0-3 3-1 ||| 1
 coming from [X][X] [X] ||| 来自 [X][X] 的 [X] ||| 0-0 1-0 2-1 ||| 1
 [X][X] coming from [X][X] [X] ||| 来自 [X][X] 的 [X][X] [X] ||| 1-0 2-0 3-1 0-3 ||| 1
 astronauts coming from [X][X] [X] ||| 来自 [X][X] 的 宇航 员 [X] ||| 1-0 2-0 0-3 0-4 3-1 ||| 1
+coming from France [X] ||| 来自 法国 [X] ||| 0-0 1-0 2-1 ||| 1
 [X][X] coming from France [X] ||| 来自 法国 [X][X] [X] ||| 1-0 2-0 3-1 0-2 ||| 1
+coming from France [X] ||| 来自 法国 的 [X] ||| 0-0 1-0 2-1 ||| 1
 [X][X] coming from France [X] ||| 来自 法国 的 [X][X] [X] ||| 1-0 2-0 3-1 0-3 ||| 1
-[X][X] [X] ||| 的 [X][X] [X] ||| 0-1 ||| 1
+astronauts coming from France [X] ||| 来自 法国 的 宇航 员 [X] ||| 1-0 2-0 3-1 0-3 0-4 ||| 1
+France [X] ||| 法国 [X] ||| 0-0 ||| 1
+France [X] ||| 法国 的 [X] ||| 0-0 ||| 1
+astronauts [X] ||| 的 宇航 员 [X] ||| 0-1 0-2 ||| 1
