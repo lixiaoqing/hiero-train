@@ -39,6 +39,8 @@ void RuleExtractor::generate_rule_according_to_src_spans(Span span,Span span_X1,
 	if (check_alignment_constraint(span,span_X1,span_X2)==false)
 		return;
 	Span tgt_span = str_pair->src_span_to_tgt_span[span.first][span.second];								// 获取规则目标端以及其中变量的跨度
+	if (tgt_span.second + 1 > MAX_SPAN_LEN)
+		return;
 	Span tgt_span_X1 = make_pair(-1,-1);
 	if (span_X1.first != -1)
 	{
@@ -52,14 +54,26 @@ void RuleExtractor::generate_rule_according_to_src_spans(Span span,Span span_X1,
 	string rule_src = get_words_according_to_spans(span,span_X1,span_X2,str_pair->src_words);				// 生成规则源端的字符串表示
 	if (get_word_num(rule_src) > MAX_RULE_SRC_LEN)
 		return;
-	string rule_tgt = get_words_according_to_spans(tgt_span,tgt_span_X1,tgt_span_X2,str_pair->tgt_words);	// 生成规则目标端的字符串表示
-	if (get_word_num(rule_tgt) > MAX_RULE_TGT_LEN)
-		return;
-	string alignment = get_alignment_inside_rule(span,span_X1,span_X2,tgt_span,tgt_span_X1,tgt_span_X2);
-	if (alignment.size() > 0)																				// hiero规则最少有一个终结符对齐
+	for (int tgt_beg=tgt_span.first;tgt_beg>=max(0,tgt_span.first-3);tgt_beg--)
 	{
-		string rule = rule_src+" [X] ||| "+rule_tgt+" [X] ||| "+alignment;
-		str_pair->src_span_to_rules[span.first][span.second].push_back(rule);
+		if (tgt_beg<tgt_span.first && !str_pair->tgt_idx_to_src_idx[tgt_beg].empty())
+			break;
+		int tgt_span_end = tgt_span.first+tgt_span.second;
+		for (int tgt_len=tgt_span_end-tgt_beg;tgt_beg+tgt_len<=tgt_span_end+3 && tgt_beg+tgt_len<str_pair->tgt_sen_len;tgt_len++)
+		{
+			if (tgt_len>tgt_span.first+tgt_span.second-tgt_beg && !str_pair->tgt_idx_to_src_idx[tgt_beg+tgt_len].empty())
+				break;
+			Span expanded_tgt_span = make_pair(tgt_beg,tgt_len);
+			string rule_tgt = get_words_according_to_spans(expanded_tgt_span,tgt_span_X1,tgt_span_X2,str_pair->tgt_words);	// 生成规则目标端的字符串表示
+			if (get_word_num(rule_tgt) > MAX_RULE_TGT_LEN)
+				return;
+			string alignment = get_alignment_inside_rule(span,span_X1,span_X2,expanded_tgt_span,tgt_span_X1,tgt_span_X2);
+			if (alignment.size() > 0)																				// hiero规则最少有一个终结符对齐
+			{
+				string rule = rule_src+" [X] ||| "+rule_tgt+" [X] ||| "+alignment;
+				str_pair->src_span_to_rules[span.first][span.second].push_back(rule);
+			}
+		}
 	}
 }
 
@@ -138,8 +152,8 @@ string RuleExtractor::get_alignment_inside_rule(Span span,Span span_X1,Span span
 	}
 
 	// 遍历规则源端，先找到规则源端每个单词(或变量)在目标端句子中对应的位置，再找在规则目标端对应的位置
-	vector<set<int> > alignments_for_each_token_in_rule_src;
-	alignments_for_each_token_in_rule_src.resize(span.second+1);
+	vector<set<int> > alignments_for_each_token_in_rule_tgt;
+	alignments_for_each_token_in_rule_tgt.resize(tgt_span.second+1);
 	sen_idx = span.first;
 	rule_idx = 0;
 	int rule_src_idx_X1 = -1;
@@ -168,7 +182,7 @@ string RuleExtractor::get_alignment_inside_rule(Span span,Span span_X1,Span span
 		{
 			for (int tgt_sen_idx : str_pair->src_idx_to_tgt_idx.at(sen_idx))
 			{
-				alignments_for_each_token_in_rule_src.at(rule_idx).insert(tgt_sen_idx_to_rule_idx[tgt_sen_idx]);
+				alignments_for_each_token_in_rule_tgt.at(tgt_sen_idx_to_rule_idx[tgt_sen_idx]).insert(rule_idx);
 			}
 			sen_idx++;
 			rule_idx++;
@@ -176,11 +190,11 @@ string RuleExtractor::get_alignment_inside_rule(Span span,Span span_X1,Span span
 	}
 
 	string alignment;
-	for (int i=0;i<alignments_for_each_token_in_rule_src.size();i++)
+	for (int i=0;i<alignments_for_each_token_in_rule_tgt.size();i++)
 	{
-		for (int rule_tgt_idx : alignments_for_each_token_in_rule_src.at(i))
+		for (int rule_src_idx : alignments_for_each_token_in_rule_tgt.at(i))
 		{
-			alignment += to_string(i)+"-"+to_string(rule_tgt_idx)+" ";
+			alignment += to_string(rule_src_idx)+"-"+to_string(i)+" ";
 		}
 	}
 	if (alignment.size() == 0)
@@ -229,7 +243,7 @@ void RuleExtractor::dump_rules(ofstream &fs2t,ofstream &ft2s)
 	}
 	for (auto &kvp : rule_table)
 	{
-		fs2t<<kvp.first<<" ||| "<<kvp.second<<" |||"<<endl;
+		fs2t<<kvp.first<<" ||| "<<kvp.second<<" ||| "<<endl;
 		vector<string> vs = Split(kvp.first," ||| ");
 		ft2s<<vs[1]<<" ||| "<<vs[0]<<" ||| ";
 		for (auto &idx_e2c_pair : Split(vs[2]))
@@ -237,7 +251,7 @@ void RuleExtractor::dump_rules(ofstream &fs2t,ofstream &ft2s)
 			int sep = idx_e2c_pair.find('-');
 			ft2s<<idx_e2c_pair.substr(sep+1)<<'-'<<idx_e2c_pair.substr(0,sep)<<' ';
 		}
-		ft2s<<"||| "<<kvp.second<<endl;
+		ft2s<<"||| "<<kvp.second<<" "<<endl;
 	}
 }
 
@@ -260,7 +274,7 @@ void RuleExtractor::fill_span2rules_with_AX_XA_XAX_rule()
 			//抽取形如XA的规则
 			if (beg_A != 0)
 			{
-				for (int len_X=0;len_X<beg_A && len_X+len_A+2<MAX_SPAN_LEN;len_X++)
+				for (int len_X=1;len_X<beg_A && len_X+len_A+2<MAX_SPAN_LEN;len_X++)
 				{
 					int beg_X = beg_A - len_X - 1;
 					Span span = make_pair(beg_X,len_X+len_A+1);
@@ -272,7 +286,7 @@ void RuleExtractor::fill_span2rules_with_AX_XA_XAX_rule()
 			//抽取形如AX的规则
 			if (beg_A+len_A != src_sen_len - 1)
 			{
-				for (int len_X=0;beg_A+len_A+1+len_X<src_sen_len && len_A+len_X+2<MAX_SPAN_LEN;len_X++)
+				for (int len_X=1;beg_A+len_A+1+len_X<src_sen_len && len_A+len_X+2<MAX_SPAN_LEN;len_X++)
 				{
 					int beg_X = beg_A + len_A + 1;
 					Span span = make_pair(beg_A,len_A+len_X+1);
@@ -284,9 +298,9 @@ void RuleExtractor::fill_span2rules_with_AX_XA_XAX_rule()
 			//抽取形如XAX的规则
 			if (beg_A != 0 && beg_A+len_A != src_sen_len - 1)
 			{
-				for (int len_X1=0;len_X1<beg_A && len_X1+len_A+2<MAX_SPAN_LEN-1;len_X1++)
+				for (int len_X1=1;len_X1<beg_A && len_X1+len_A+2<MAX_SPAN_LEN-1;len_X1++)
 				{
-					for (int len_X2=0;beg_A+len_A+1+len_X2<src_sen_len && len_X1+len_A+len_X2+3<MAX_SPAN_LEN;len_X2++)
+					for (int len_X2=1;beg_A+len_A+1+len_X2<src_sen_len && len_X1+len_A+len_X2+3<MAX_SPAN_LEN;len_X2++)
 					{
 						int beg_X1 = beg_A - len_X1 - 1;
 						int beg_X2 = beg_A + len_A + 1;
@@ -322,7 +336,7 @@ void RuleExtractor::fill_span2rules_with_AXX_XXA_rule()
 			{
 				for (int len_X1X2=1;len_X1X2<beg_A && len_X1X2+len_A+2<MAX_SPAN_LEN;len_X1X2++)
 				{
-					for (int len_X2=0;len_X2<len_X1X2;len_X2++)
+					for (int len_X2=1;len_X2<len_X1X2;len_X2++)
 					{
 						int beg_X1 = beg_A - len_X1X2 - 1;
 						int beg_X2 = beg_A - len_X2 - 1;
@@ -340,7 +354,7 @@ void RuleExtractor::fill_span2rules_with_AXX_XXA_rule()
 			{
 				for (int len_X1X2=1;beg_A+len_A+1+len_X1X2<src_sen_len && len_A+len_X1X2+2<MAX_SPAN_LEN;len_X1X2++)
 				{
-					for (int len_X1=0;len_X1<len_X1X2;len_X1++)
+					for (int len_X1=1;len_X1<len_X1X2;len_X1++)
 					{
 						int beg_X1 = beg_A + len_A + 1;
 						int beg_X2 = beg_A + len_A + 1 + len_X1 + 1;
@@ -372,12 +386,12 @@ void RuleExtractor::fill_span2rules_with_AXB_AXBX_XAXB_rule()
 		{
 			for (int beg_X=beg_AXB+1;beg_X<beg_AXB+len_AXB;beg_X++)
 			{
-				for (int len_X=0;beg_X+len_X<beg_AXB+len_AXB;len_X++)
+				for (int len_X=1;beg_X+len_X<beg_AXB+len_AXB;len_X++)
 				{
 					//抽取形如XAXB的pattern
 					if (beg_AXB != 0)
 					{
-						for (int len_X1=0;len_X1<beg_AXB && len_X1+len_AXB+2<MAX_SPAN_LEN;len_X1++)
+						for (int len_X1=1;len_X1<beg_AXB && len_X1+len_AXB+2<MAX_SPAN_LEN;len_X1++)
 						{
 							int beg_X1 = beg_AXB - len_X1 - 1;
 							Span span = make_pair(beg_X1,len_X1+len_AXB+1);
@@ -389,7 +403,7 @@ void RuleExtractor::fill_span2rules_with_AXB_AXBX_XAXB_rule()
 					//抽取形如AXBX的pattern
 					if (beg_AXB+len_AXB != src_sen_len - 1)
 					{
-						for (int len_X2=0;beg_AXB+len_AXB+1+len_X2<src_sen_len && len_AXB+len_X2+2<MAX_SPAN_LEN;len_X2++)
+						for (int len_X2=1;beg_AXB+len_AXB+1+len_X2<src_sen_len && len_AXB+len_X2+2<MAX_SPAN_LEN;len_X2++)
 						{
 							int beg_X2 = beg_AXB + len_AXB + 1;
 							Span span = make_pair(beg_AXB,len_AXB+len_X2+1);
@@ -420,17 +434,17 @@ void RuleExtractor::fill_span2rules_with_AXB_AXBX_XAXB_rule()
 void RuleExtractor::fill_span2rules_with_AXBXC_rule()
 {
 	int src_sen_len = str_pair->src_sen_len;
-	for (int beg_AXBXC=0;beg_AXBXC+4<src_sen_len;beg_AXBXC++)
+	for (int beg_AXBXC=0;beg_AXBXC+6<src_sen_len;beg_AXBXC++)
 	{
-		for (int len_AXBXC=4;beg_AXBXC+len_AXBXC<src_sen_len && len_AXBXC<MAX_SPAN_LEN;len_AXBXC++)
+		for (int len_AXBXC=6;beg_AXBXC+len_AXBXC<src_sen_len && len_AXBXC<MAX_SPAN_LEN;len_AXBXC++)
 		{
 			for (int beg_XBX=beg_AXBXC+1;beg_XBX+2<beg_AXBXC+len_AXBXC;beg_XBX++)
 			{
-				for (int len_XBX=2;beg_XBX+len_XBX<len_AXBXC+beg_AXBXC;len_XBX++)
+				for (int len_XBX=4;beg_XBX+len_XBX<len_AXBXC+beg_AXBXC;len_XBX++)
 				{
-					for (int beg_B=beg_XBX+1;beg_B<beg_XBX+len_XBX;beg_B++)
+					for (int beg_B=beg_XBX+2;beg_B<beg_XBX+len_XBX;beg_B++)
 					{
-						for (int len_B=0;beg_B+len_B<len_XBX+beg_XBX;len_B++)
+						for (int len_B=0;beg_B+len_B+1<len_XBX+beg_XBX;len_B++)
 						{
 							Span span = make_pair(beg_AXBXC,len_AXBXC);
 							Span span_X1 = make_pair(beg_XBX,beg_B-beg_XBX-1);
