@@ -54,27 +54,54 @@ void RuleExtractor::generate_rule_according_to_src_spans(Span span,Span span_X1,
 	string rule_src = get_words_according_to_spans(span,span_X1,span_X2,str_pair->src_words);				// 生成规则源端的字符串表示
 	if (get_word_num(rule_src) > MAX_RULE_SRC_LEN)
 		return;
-	for (int tgt_beg=tgt_span.first;tgt_beg>=max(0,tgt_span.first-3);tgt_beg--)
+	vector<Span> expanded_tgt_spans = expand_tgt_span(tgt_span,make_pair(0,str_pair->tgt_sen_len-1));
+	for (auto expanded_tgt_span : expanded_tgt_spans)
 	{
-		if (tgt_beg<tgt_span.first && !str_pair->tgt_idx_to_src_idx[tgt_beg].empty())
-			break;
-		int tgt_span_end = tgt_span.first+tgt_span.second;
-		for (int tgt_len=tgt_span_end-tgt_beg;tgt_beg+tgt_len<=tgt_span_end+3 && tgt_beg+tgt_len<str_pair->tgt_sen_len;tgt_len++)
+		vector<Span> expanded_tgt_spans_X1 = expand_tgt_span(tgt_span_X1,expanded_tgt_span);
+		for (auto expanded_tgt_span_X1 : expanded_tgt_spans_X1)
 		{
-			if (tgt_len>tgt_span.first+tgt_span.second-tgt_beg && !str_pair->tgt_idx_to_src_idx[tgt_beg+tgt_len].empty())
-				break;
-			Span expanded_tgt_span = make_pair(tgt_beg,tgt_len);
-			string rule_tgt = get_words_according_to_spans(expanded_tgt_span,tgt_span_X1,tgt_span_X2,str_pair->tgt_words);	// 生成规则目标端的字符串表示
-			if (get_word_num(rule_tgt) > MAX_RULE_TGT_LEN)
-				return;
-			string alignment = get_alignment_inside_rule(span,span_X1,span_X2,expanded_tgt_span,tgt_span_X1,tgt_span_X2);
-			if (alignment.size() > 0)																				// hiero规则最少有一个终结符对齐
+			vector<Span> expanded_tgt_spans_X2 = expand_tgt_span(tgt_span_X2,expanded_tgt_span);
+			for (auto expanded_tgt_span_X2 : expanded_tgt_spans_X2)
 			{
-				string rule = rule_src+" [X] ||| "+rule_tgt+" [X] ||| "+alignment;
-				str_pair->src_span_to_rules[span.first][span.second].push_back(rule);
+				// 生成规则目标端的字符串表示
+				string rule_tgt = get_words_according_to_spans(expanded_tgt_span,expanded_tgt_span_X1,expanded_tgt_span_X2,str_pair->tgt_words);
+				if (get_word_num(rule_tgt) > MAX_RULE_TGT_LEN)
+					return;
+				string alignment = get_alignment_inside_rule(span,span_X1,span_X2,expanded_tgt_span,expanded_tgt_span_X1,expanded_tgt_span_X2);
+				if (alignment.size() > 0)																	// hiero规则最少有一个终结符对齐
+				{
+					string rule = rule_src+" [X] ||| "+rule_tgt+" [X] ||| "+alignment;
+					str_pair->src_span_to_rules[span.first][span.second].push_back(rule);
+				}
 			}
 		}
 	}
+}
+
+/**************************************************************************************
+ 1. 函数功能: 将目标端span向两端扩展，直到遇到对齐的词
+ 2. 入口参数: 待扩展的目标端span
+ 3. 出口参数: 所有可用的目标端span
+ 4. 算法简介: 见注释
+************************************************************************************* */
+vector<Span> RuleExtractor::expand_tgt_span(Span tgt_span,Span bound)
+{
+	if (tgt_span.first == -1)
+		return {tgt_span};
+	vector<Span> expanded_spans;
+	for (int tgt_beg=tgt_span.first;tgt_beg>=max(bound.first,tgt_span.first-3);tgt_beg--)		//向左扩展
+	{
+		if (tgt_beg<tgt_span.first && !str_pair->tgt_idx_to_src_idx[tgt_beg].empty())			//遇到对齐的词
+			break;
+		int tgt_span_end = tgt_span.first+tgt_span.second;
+		for (int tgt_len=tgt_span_end-tgt_beg;tgt_beg+tgt_len<=min(tgt_span_end+3,bound.first+bound.second);tgt_len++)		//向右扩展
+		{
+			if (tgt_len>tgt_span_end-tgt_beg && !str_pair->tgt_idx_to_src_idx[tgt_beg+tgt_len].empty())						//遇到对齐的词
+				break;
+			expanded_spans.push_back(make_pair(tgt_beg,tgt_len));
+		}
+	}
+	return expanded_spans;
 }
 
 /**************************************************************************************
