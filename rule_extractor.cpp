@@ -38,6 +38,9 @@ void RuleExtractor::generate_rule_according_to_src_spans(Span span,Span span_X1,
 	//如果整个span或变量span不满足对齐一致性
 	if (check_alignment_constraint(span,span_X1,span_X2)==false)
 		return;
+	string rule_src = get_words_according_to_spans(span,span_X1,span_X2,str_pair->src_words);				// 生成规则源端的字符串表示
+	if (get_word_num(rule_src) > MAX_RULE_SRC_LEN)
+		return;
 	Span tgt_span = str_pair->src_span_to_tgt_span[span.first][span.second];								// 获取规则目标端以及其中变量的跨度
 	if (tgt_span.second + 1 > MAX_SPAN_LEN)
 		return;
@@ -51,9 +54,6 @@ void RuleExtractor::generate_rule_according_to_src_spans(Span span,Span span_X1,
 	{
 		tgt_span_X2 = str_pair->src_span_to_tgt_span[span_X2.first][span_X2.second];
 	}
-	string rule_src = get_words_according_to_spans(span,span_X1,span_X2,str_pair->src_words);				// 生成规则源端的字符串表示
-	if (get_word_num(rule_src) > MAX_RULE_SRC_LEN)
-		return;
 	vector<Span> expanded_tgt_spans = expand_tgt_span(tgt_span,make_pair(0,str_pair->tgt_sen_len-1));
 	for (auto expanded_tgt_span : expanded_tgt_spans)
 	{
@@ -66,7 +66,7 @@ void RuleExtractor::generate_rule_according_to_src_spans(Span span,Span span_X1,
 				// 生成规则目标端的字符串表示
 				string rule_tgt = get_words_according_to_spans(expanded_tgt_span,expanded_tgt_span_X1,expanded_tgt_span_X2,str_pair->tgt_words);
 				if (get_word_num(rule_tgt) > MAX_RULE_TGT_LEN)
-					return;
+					continue;
 				string alignment = get_alignment_inside_rule(span,span_X1,span_X2,expanded_tgt_span,expanded_tgt_span_X1,expanded_tgt_span_X2);
 				if (alignment.size() > 0)																	// hiero规则最少有一个终结符对齐
 				{
