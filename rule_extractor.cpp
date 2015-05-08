@@ -59,25 +59,69 @@ void RuleExtractor::generate_rule_according_to_src_spans(Span span,Span span_X1,
 	//如果整个span或变量span不满足对齐一致性
 	if (check_alignment_constraint(span,span_X1,span_X2)==false)
 		return;
+	string rule_src = get_words_according_to_spans(span,span_X1,span_X2,stpair->src_words);		// 生成规则源端的字符串表示
+	if (get_word_num(rule_src) > MAX_RULE_SRC_LEN)
+		return;
 	Span tgt_span = stpair->src_span_to_tgt_span[span.first][span.second];						// 获取规则目标端以及其中变量的跨度
-	Span tgt_span_X1 = stpair->src_span_to_tgt_span[span_X1.first][span_X1.second];
+	Span tgt_span_X1 = make_pair(-1,-1);
+	if (span_X1.first != -1)
+	{
+		tgt_span_X1 = stpair->src_span_to_tgt_span[span_X1.first][span_X1.second];
+	}
 	Span tgt_span_X2 = make_pair(-1,-1);
 	if (span_X2.first != -1)
 	{
 		tgt_span_X2 = stpair->src_span_to_tgt_span[span_X2.first][span_X2.second];
 	}
-	//如果整个span或变量span不对应句法节点
-	if (check_node_constraint(tgt_span,tgt_span_X1,tgt_span_X2,stpair->tgt_span_to_node_flag)==false)
-		return;
-	string rule_src = get_words_according_to_spans(span,span_X1,span_X2,stpair->src_words);				// 生成规则源端的字符串表示
-	if (get_word_num(rule_src) > MAX_RULE_SRC_LEN)
-		return;
-	string rule_tgt = get_words_according_to_spans(tgt_span,tgt_span_X1,tgt_span_X2,stpair->tgt_words); // 生成规则目标端的字符串表示
-	if (get_word_num(rule_tgt) > MAX_RULE_TGT_LEN)
-		return;
-	string alignment = get_alignment_inside_rule(span,span_X1,span_X2,tgt_span,tgt_span_X1,tgt_span_X2);
-	string rule = rule_src+" [X] ||| "+rule_tgt+" [X] ||| "+alignment;
-	stpair->src_span_to_rules[span.first][span.second].push_back(rule);
+	//对目标端span以及目标端变量span进行扩展，直到遇到对齐的词
+	vector<Span> expanded_tgt_spans = expand_tgt_span(tgt_span,make_pair(0,stpair->tgt_sen_len-1));
+	for (auto expanded_tgt_span : expanded_tgt_spans)
+	{
+		vector<Span> expanded_tgt_spans_X1 = expand_tgt_span(tgt_span_X1,expanded_tgt_span);
+		for (auto expanded_tgt_span_X1 : expanded_tgt_spans_X1)
+		{
+			vector<Span> expanded_tgt_spans_X2 = expand_tgt_span(tgt_span_X2,expanded_tgt_span);
+			for (auto expanded_tgt_span_X2 : expanded_tgt_spans_X2)
+			{
+				//如果整个span或变量span不对应句法节点
+				if (check_node_constraint(expanded_tgt_span,expanded_tgt_span_X1,expanded_tgt_span_X2,stpair->tgt_span_to_node_flag)==false)
+					continue;
+				// 生成规则目标端的字符串表示
+				string rule_tgt = get_words_according_to_spans(expanded_tgt_span,expanded_tgt_span_X1,expanded_tgt_span_X2,stpair->tgt_words);
+				if (get_word_num(rule_tgt) > MAX_RULE_TGT_LEN)
+					continue;
+				string alignment = get_alignment_inside_rule(span,span_X1,span_X2,expanded_tgt_span,expanded_tgt_span_X1,expanded_tgt_span_X2);
+				string rule = rule_src+" [X] ||| "+rule_tgt+" [X] ||| "+alignment;
+				stpair->src_span_to_rules[span.first][span.second].push_back(rule);
+			}
+		}
+	}
+}
+
+/**************************************************************************************
+ 1. 函数功能: 将目标端span向两端扩展，直到遇到对齐的词
+ 2. 入口参数: 待扩展的目标端span
+ 3. 出口参数: 所有可用的目标端span
+ 4. 算法简介: 见注释
+************************************************************************************* */
+vector<Span> RuleExtractor::expand_tgt_span(Span tgt_span,Span bound)
+{
+	if (tgt_span.first == -1)
+		return {tgt_span};
+	vector<Span> expanded_spans;
+	for (int tgt_beg=tgt_span.first;tgt_beg>=max(bound.first,tgt_span.first-3);tgt_beg--)		//向左扩展
+	{
+		if (tgt_beg<tgt_span.first && !stpair->tgt_idx_to_src_idx[tgt_beg].empty())			//遇到对齐的词
+			break;
+		int tgt_span_end = tgt_span.first+tgt_span.second;
+		for (int tgt_len=tgt_span_end-tgt_beg;tgt_beg+tgt_len<=min(tgt_span_end+3,bound.first+bound.second);tgt_len++)		//向右扩展
+		{
+			if (tgt_len>tgt_span_end-tgt_beg && !stpair->tgt_idx_to_src_idx[tgt_beg+tgt_len].empty())						//遇到对齐的词
+				break;
+			expanded_spans.push_back(make_pair(tgt_beg,tgt_len));
+		}
+	}
+	return expanded_spans;
 }
 
 /**************************************************************************************
