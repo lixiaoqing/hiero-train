@@ -2,6 +2,7 @@
 
 StrTreePair::StrTreePair(string &line_str,string &line_tree,string &line_align)
 {
+	flag = true;
 	if (line_tree.size() > 3)
 	{
 		src_words = Split(line_str);

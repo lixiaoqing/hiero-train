@@ -253,7 +253,7 @@ void RuleExtractor::extract_rules()
 	fill_span2rules_with_AXBXC_rule();                                //形如AXBXC的规则
 }
 
-void RuleExtractor::dump_rules(ofstream &fs2t,ofstream &ft2s)
+void RuleExtractor::dump_rules(vector<string> &fw_rules, vector<string> &bw_rules)
 {
 	auto &span2rules = stpair->src_span_to_rules;
 	for (int beg=0;beg<span2rules.size();beg++)
@@ -276,15 +276,17 @@ void RuleExtractor::dump_rules(ofstream &fs2t,ofstream &ft2s)
 	}
 	for (auto &kvp : rule_table)
 	{
-		fs2t<<kvp.first<<" ||| "<<kvp.second<<" |||"<<endl;
+		fw_rules.push_back(kvp.first+" ||| "+to_string(kvp.second)+" |||");
 		vector<string> vs = Split(kvp.first," ||| ");
-		ft2s<<vs[1]<<" ||| "<<vs[0]<<" ||| ";
+		string bw_rule;
+		bw_rule = vs[1]+" ||| "+vs[0]+" ||| ";
 		for (auto &idx_e2c_pair : Split(vs[2]))
 		{
 			int sep = idx_e2c_pair.find('-');
-			ft2s<<idx_e2c_pair.substr(sep+1)<<'-'<<idx_e2c_pair.substr(0,sep)<<' ';
+			bw_rule += idx_e2c_pair.substr(sep+1)+"-"+idx_e2c_pair.substr(0,sep)+" ";
 		}
-		ft2s<<"||| "<<kvp.second<<endl;
+		bw_rule += "||| "+to_string(kvp.second);
+		bw_rules.push_back(bw_rule);
 	}
 }
 
