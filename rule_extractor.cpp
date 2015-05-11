@@ -73,28 +73,20 @@ void RuleExtractor::generate_rule_according_to_src_spans(Span span,Span span_X1,
 	{
 		tgt_span_X2 = stpair->src_span_to_tgt_span[span_X2.first][span_X2.second];
 	}
-	//对目标端span以及目标端变量span进行扩展，直到遇到对齐的词
+	//对目标端span进行扩展，直到遇到对齐的词
 	vector<Span> expanded_tgt_spans = expand_tgt_span(tgt_span,make_pair(0,stpair->tgt_sen_len-1));
 	for (auto expanded_tgt_span : expanded_tgt_spans)
 	{
-		vector<Span> expanded_tgt_spans_X1 = expand_tgt_span(tgt_span_X1,expanded_tgt_span);
-		for (auto expanded_tgt_span_X1 : expanded_tgt_spans_X1)
-		{
-			vector<Span> expanded_tgt_spans_X2 = expand_tgt_span(tgt_span_X2,expanded_tgt_span);
-			for (auto expanded_tgt_span_X2 : expanded_tgt_spans_X2)
-			{
-				//如果整个span或变量span不对应句法节点
-				if (check_node_constraint(expanded_tgt_span,expanded_tgt_span_X1,expanded_tgt_span_X2,stpair->tgt_span_to_node_flag)==false)
-					continue;
-				// 生成规则目标端的字符串表示
-				string rule_tgt = get_words_according_to_spans(expanded_tgt_span,expanded_tgt_span_X1,expanded_tgt_span_X2,stpair->tgt_words);
-				if (get_word_num(rule_tgt) > MAX_RULE_TGT_LEN)
-					continue;
-				string alignment = get_alignment_inside_rule(span,span_X1,span_X2,expanded_tgt_span,expanded_tgt_span_X1,expanded_tgt_span_X2);
-				string rule = rule_src+" [X] ||| "+rule_tgt+" [X] ||| "+alignment;
-				stpair->src_span_to_rules[span.first][span.second].push_back(rule);
-			}
-		}
+		//如果整个span或变量span不对应句法节点
+		if (check_node_constraint(expanded_tgt_span,tgt_span_X1,tgt_span_X2,stpair->tgt_span_to_node_flag)==false)
+			continue;
+		// 生成规则目标端的字符串表示
+		string rule_tgt = get_words_according_to_spans(expanded_tgt_span,tgt_span_X1,tgt_span_X2,stpair->tgt_words);
+		if (get_word_num(rule_tgt) > MAX_RULE_TGT_LEN)
+			continue;
+		string alignment = get_alignment_inside_rule(span,span_X1,span_X2,expanded_tgt_span,tgt_span_X1,tgt_span_X2);
+		string rule = rule_src+" [X] ||| "+rule_tgt+" [X] ||| "+alignment;
+		stpair->src_span_to_rules[span.first][span.second].push_back(rule);
 	}
 }
 
